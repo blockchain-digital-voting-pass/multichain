@@ -250,9 +250,6 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     secp256k1_ecdsa_signature_serialize_der(secp256k1_context_sign, (unsigned char*)&vchSig[0], &nSigLen, &sig);
     vchSig.resize(nSigLen);*/
 
-
-
-
     
     //create a signer
     CryptoPP::AutoSeededRandomPool prng;
