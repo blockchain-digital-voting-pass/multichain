@@ -580,6 +580,7 @@ int mc_MultichainParams::Read(const char* name,int argc, char* argv[],int create
                     if(size > param->m_MaxStringSize)
                     {
                         std::cout << "Error hier2 should be " << param->m_MaxStringSize <<  ", " << param->m_Name << "\n\n";
+                        std::cout << "Des: " << param->m_Description << "\n";
                         printf("Invalid parameter value for %s - too long: %d\n",param->m_DisplayName,(int)strlen(ptr));
                         return MC_ERR_INVALID_PARAMETER_VALUE;                                                
                     }

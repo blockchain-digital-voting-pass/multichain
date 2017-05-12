@@ -299,7 +299,7 @@ bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
 }
 
 bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
-    std::cout << "Sign Compact called\n\n"
+    std::cout << "Sign Compact called\n\n";
     if (!fValid)
         return false;
     vchSig.resize(65);
