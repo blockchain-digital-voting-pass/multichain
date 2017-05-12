@@ -16,6 +16,39 @@
 #include <vector>
 
 
+
+#include "../cryptopp/eccrypto.h"
+
+
+#include "../cryptopp/sha.h"
+
+#include "../cryptopp/queue.h"
+using CryptoPP::ByteQueue;
+
+#include "../cryptopp/oids.h"
+using CryptoPP::OID;
+
+// ASN1 is a namespace, not an object
+#include "../cryptopp/asn.h"
+using namespace CryptoPP::ASN1;
+
+#include "../cryptopp/files.h"
+using CryptoPP::FileSource;
+using CryptoPP::FileSink;
+
+#include "../cryptopp/integer.h"
+using CryptoPP::Integer;
+
+#include "../cryptopp/cryptlib.h"
+using CryptoPP::PublicKey;
+using CryptoPP::BufferedTransformation;
+
+#include "../cryptopp/asn.h"
+#include "../cryptopp/osrng.h"
+
+
+
+
 /** 
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
@@ -45,6 +78,8 @@ private:
 
     //! The actual byte data
     unsigned char vch[32];
+
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey1;
 
     //! Check whether the 32-byte array pointed to be vch is valid keydata.
     bool static Check(const unsigned char* vch);

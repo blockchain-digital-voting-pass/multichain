@@ -2,7 +2,7 @@
 // MultiChain code distributed under the GPLv3 license, see COPYING file.
 
 #include "multichain/multichain.h"
-
+#include <iostream>
 
 #define MC_PRM_DAT_FILE_LINE_SIZE 39
 
@@ -579,6 +579,7 @@ int mc_MultichainParams::Read(const char* name,int argc, char* argv[],int create
                     size=strlen(ptr) / 2;   
                     if(size > param->m_MaxStringSize)
                     {
+                        std::cout << "Error hier2 should be " << param->m_MaxStringSize <<  ", " << param->m_Name << "\n\n";
                         printf("Invalid parameter value for %s - too long: %d\n",param->m_DisplayName,(int)strlen(ptr));
                         return MC_ERR_INVALID_PARAMETER_VALUE;                                                
                     }
@@ -592,6 +593,7 @@ int mc_MultichainParams::Read(const char* name,int argc, char* argv[],int create
                     size=strlen(ptr);
                     if(size > param->m_MaxStringSize)
                     {
+                        std::cout << "Error hier\n\n";
                         printf("Invalid parameter value for %s - too long: %d\n",param->m_DisplayName,(int)strlen(ptr));
                         return MC_ERR_INVALID_PARAMETER_VALUE;                                                
                     }

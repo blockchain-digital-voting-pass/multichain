@@ -8,6 +8,40 @@
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
+
+#include "../cryptopp/eccrypto.h"
+using CryptoPP::ECP;
+using CryptoPP::ECDSA;
+
+#include "../cryptopp/sha.h"
+using CryptoPP::SHA256;
+
+#include "../cryptopp/queue.h"
+using CryptoPP::ByteQueue;
+
+#include "../cryptopp/oids.h"
+using CryptoPP::OID;
+
+// ASN1 is a namespace, not an object
+#include "../cryptopp/asn.h"
+using namespace CryptoPP::ASN1;
+
+#include "../cryptopp/files.h"
+using CryptoPP::FileSource;
+using CryptoPP::FileSink;
+
+#include "../cryptopp/integer.h"
+using CryptoPP::Integer;
+
+#include "../cryptopp/cryptlib.h"
+using CryptoPP::PublicKey;
+using CryptoPP::BufferedTransformation;
+
+
+
+
+
+
 namespace
 {
 /* Global secp256k1_context object used for verification. */
@@ -169,21 +203,64 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
 bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig) const {
     if (!IsValid())
         return false;
-    secp256k1_pubkey pubkey;
-    secp256k1_ecdsa_signature sig;
-    if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size())) {
-        return false;
-    }
+    //secp256k1_pubkey pubkey;
+    //secp256k1_ecdsa_signature sig;
+
+    /*  DIT LEEST DE PUBLIC KEY UIT CPubKey (this), lijkt me*/
+    //if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size())) {
+    //       return false;
+    //}
     if (vchSig.size() == 0) {
+        std::cout << "Signature heeft size 0\n";
         return false;
     }
-    if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
+
+    // Load the public key
+    /*ECDSA<ECP, SHA256>::PublicKey pubKey;
+    pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 80).Ref());*/
+
+
+    std::cout << "Hash in hex: ";
+    std::cout << std::hex << &hash;
+    std::cout << std::endl;
+
+    std::cout << vchSig[1] << "\n\n";
+
+    CryptoPP::RandomNumberGenerator rnd;
+    if(!pubKey.Validate(rnd, 3)) {
+        std::cout << "Non valid public key\n";
         return false;
     }
+
+    ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
+    //std::vector<char> signature(80);
+    //std::vector<char> data(8);
+    //LoadFile("signature", signature);
+    //LoadFile("data", data);
+
+    bool result = verifier.VerifyMessage( 
+        /*(const byte*) hash,
+        8,*/ 
+        (const byte*) &hash,//data.data(), 
+        256, 
+        (const byte*) vchSig.data(), 
+        vchSig.size() );
+
+    //if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
+    //    return false;
+    //}
     /* libsecp256k1's ECDSA verification requires lower-S signatures, which have
      * not historically been enforced in Bitcoin, so normalize them first. */
-    secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
-    return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+    //secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
+    //return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+    if(result) {
+        std::cout << "\n\nVerify succeeded\n\n";
+    } else {
+        std::cout << "\n\nHelaas pindakaas\n\n";
+    }
+    return result;
+
+
 }
 
 bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) {
@@ -209,8 +286,16 @@ bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned cha
 bool CPubKey::IsFullyValid() const {
     if (!IsValid())
         return false;
-    secp256k1_pubkey pubkey;
-    return secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size());
+    ECDSA<ECP, SHA256>::PublicKey pubKey;
+    pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 80).Ref());
+
+    CryptoPP::RandomNumberGenerator rnd;
+    if(!pubKey.Validate(rnd, 3)) {
+        std::cout << "Non valid public key in IsFullyValid()\n";
+        return false;
+    }    
+    /*secp256k1_pubkey pubkey;
+    return secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size());*/
     return true;
 }
 

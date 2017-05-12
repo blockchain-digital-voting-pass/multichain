@@ -14,6 +14,13 @@
 #include <stdexcept>
 #include <vector>
 
+
+
+#include "../cryptopp/eccrypto.h"
+#include "../cryptopp/sha.h"
+#include "../cryptopp/cryptlib.h"
+
+
 /** 
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
@@ -43,16 +50,22 @@ private:
      * Just store the serialized data.
      * Its length can very cheaply be computed from the first byte.
      */
-    unsigned char vch[65];
+    unsigned char vch[80];
+
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
 
     //! Compute the length of a pubkey with a given first byte.
     unsigned int static GetLen(unsigned char chHeader)
     {
-        if (chHeader == 2 || chHeader == 3)
+        /*if (chHeader == 2 || chHeader == 3)
             return 33;
         if (chHeader == 4 || chHeader == 6 || chHeader == 7)
             return 65;
-        return 0;
+        return 0;*/
+        if(chHeader == 0) {
+            return 0;
+        }
+        return 80;
     }
 
     //! Set this key data to be invalid
@@ -77,6 +90,10 @@ public:
             memcpy(vch, (unsigned char*)&pbegin[0], len);
         else
             Invalidate();
+    }
+
+    void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
+        pubKey = _pubKey;
     }
 
     //! Construct a public key using begin/end iterators to byte data.

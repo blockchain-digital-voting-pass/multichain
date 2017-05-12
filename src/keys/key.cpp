@@ -13,6 +13,42 @@
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
+
+
+
+
+#include "../cryptopp/eccrypto.h"
+
+
+#include "../cryptopp/sha.h"
+
+#include "../cryptopp/queue.h"
+using CryptoPP::ByteQueue;
+
+#include "../cryptopp/oids.h"
+using CryptoPP::OID;
+
+// ASN1 is a namespace, not an object
+#include "../cryptopp/asn.h"
+using namespace CryptoPP::ASN1;
+
+#include "../cryptopp/files.h"
+using CryptoPP::FileSource;
+using CryptoPP::FileSink;
+
+#include "../cryptopp/integer.h"
+using CryptoPP::Integer;
+
+#include "../cryptopp/cryptlib.h"
+using CryptoPP::PublicKey;
+using CryptoPP::BufferedTransformation;
+
+#include "../cryptopp/asn.h"
+#include "../cryptopp/osrng.h"
+
+
+
+
 static secp256k1_context* secp256k1_context_sign = NULL;
 
 /** These functions are taken from the libsecp256k1 distribution and are very ugly. */
@@ -125,15 +161,35 @@ bool CKey::Check(const unsigned char *vch) {
 
 void CKey::MakeNewKey(bool fCompressedIn) {
 //    RandAddSeedPerfmon();
-    do {
+    /*do {
 //        GetRandBytes(vch, sizeof(vch));
         GetStrongRandBytes(vch, sizeof(vch));
     } while (!Check(vch));
+    
     fValid = true;
-    fCompressed = fCompressedIn;
+    fCompressed = fCompressedIn;*/
+
+
+    std::cout << "Calling MakeNewKey\n\n";
+
+    //create new private key
+    CryptoPP::AutoSeededRandomPool prng;
+    //CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey;
+    privKey1.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
+    //std::cout << "Private key size: " << privKey.ByteCount() << "\n";
+
+    bool result = privKey1.Validate( prng, 3 );
+    if(!result) {
+        std::cout << "Invalid private key generated\n";
+        fValid = false; 
+    }
+
+    fValid = true;
+    fCompressed = false;
 }
 
 bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
+    std::cout << "Private key compressed\n";
     if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), &privkey[0], privkey.size()))
         return false;
     fCompressed = fCompressedIn;
@@ -156,21 +212,35 @@ CPrivKey CKey::GetPrivKey() const {
 
 CPubKey CKey::GetPubKey() const {
     assert(fValid);
-    secp256k1_pubkey pubkey;
-    size_t clen = 65;
+
+    /*secp256k1_pubkey pubkey;
+    size_t clen = 80;
     CPubKey result;
     int ret = secp256k1_ec_pubkey_create(secp256k1_context_sign, &pubkey, begin());
     assert(ret);
     secp256k1_ec_pubkey_serialize(secp256k1_context_sign, (unsigned char*)result.begin(), &clen, &pubkey, fCompressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED);
+
     assert(result.size() == clen);
     assert(result.IsValid());
+    return result;  */
+
+    CPubKey result;
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey; 
+    CryptoPP::AutoSeededRandomPool prng;
+    privKey1.MakePublicKey(pubKey);
+    if(!pubKey.Validate(prng, 3)) {
+        std::cout << "Could not construct public key from private key!\n\n";
+    }
+    result.Set(pubKey);
     return result;
+
 }
 
 bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
+    std::cout << "SIGNING\n\n";
     if (!fValid)
         return false;
-    vchSig.resize(72);
+    /*vchSig.resize(72);
     size_t nSigLen = 72;
     unsigned char extra_entropy[32] = {0};
     WriteLE32(extra_entropy, test_case);
@@ -178,7 +248,39 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     int ret = secp256k1_ecdsa_sign(secp256k1_context_sign, &sig, hash.begin(), begin(), secp256k1_nonce_function_rfc6979, test_case ? extra_entropy : NULL);
     assert(ret);
     secp256k1_ecdsa_signature_serialize_der(secp256k1_context_sign, (unsigned char*)&vchSig[0], &nSigLen, &sig);
-    vchSig.resize(nSigLen);
+    vchSig.resize(nSigLen);*/
+
+
+
+
+    
+    //create a signer
+    CryptoPP::AutoSeededRandomPool prng;
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer(privKey1);
+    //validate if private key is correct
+    bool result = signer.AccessKey().Validate( prng, 3 );
+    if(!result) {
+        std::cout << "Error in validating key\n\n";
+    }
+
+    // Determine maximum size, allocate a string with the maximum size
+    size_t siglen = signer.MaxSignatureLength();
+    std::string signature(siglen, 0x00);
+
+    // Sign, and trim signature to actual size
+    siglen = signer.SignMessage( prng, (const byte*) &hash, 256, (byte*)signature.data() );
+    signature.resize(siglen);
+
+    //Resize signature to make sure it is big enough
+    vchSig.resize(170);
+
+    //Copy signature to vchSig
+    unsigned int i=0;
+    for(i=0; i < signature.size(); i++) {
+        vchSig[i] = signature[i];
+    }
+    // Resize to correct signature length
+    vchSig.resize(siglen);
     return true;    
 }
 
@@ -197,6 +299,7 @@ bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
 }
 
 bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
+    std::cout << "Sign Compact called\n\n"
     if (!fValid)
         return false;
     vchSig.resize(65);
@@ -212,6 +315,7 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
 }
 
 bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
+    std::cout << "Private key load called\n\n";
     if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), &privkey[0], privkey.size()))
         return false;
     fCompressed = vchPubKey.IsCompressed();
@@ -224,6 +328,7 @@ bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
 }
 
 bool CKey::Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const {
+    std::cout << "Private key derive called\n\n";
     assert(IsValid());
     assert(IsCompressed());
     unsigned char out[64];
