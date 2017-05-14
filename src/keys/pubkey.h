@@ -13,12 +13,26 @@
 
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
 
 
 #include "../cryptopp/eccrypto.h"
 #include "../cryptopp/sha.h"
 #include "../cryptopp/cryptlib.h"
+#include <../cryptopp/hex.h>
+#include <cryptopp/filters.h>
+#include "../cryptopp/queue.h"
+#include "../cryptopp/osrng.h"
+
+
+// ASN1 is a namespace, not an object
+#include "../cryptopp/oids.h"
+#include "../cryptopp/asn.h"
+using namespace CryptoPP::ASN1;
+
+
+
 
 
 /** 
@@ -50,7 +64,7 @@ private:
      * Just store the serialized data.
      * Its length can very cheaply be computed from the first byte.
      */
-    unsigned char vch[80];
+    unsigned char vch[108];
 
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
 
@@ -65,7 +79,7 @@ private:
         if(chHeader == 0) {
             return 0;
         }
-        return 80;
+        return 108;
     }
 
     //! Set this key data to be invalid
@@ -86,15 +100,62 @@ public:
     void Set(const T pbegin, const T pend)
     {
         int len = pend == pbegin ? 0 : GetLen(pbegin[0]);
-        if (len && len == (pend - pbegin))
+        if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
+
+            CryptoPP::HexDecoder decoder;
+            decoder.Put((byte*)&pbegin[0], len);
+            decoder.MessageEnd();
+
+            CryptoPP::ECP::Point q;
+            size_t len = decoder.MaxRetrievable();
+
+            q.identity = false;
+            q.x.Decode(decoder, len/2);
+            q.y.Decode(decoder, len/2);
+
+            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), q);
+        }
         else
             Invalidate();
     }
 
     void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
         pubKey = _pubKey;
+
+
+        //Write to vch
+        //TODO: rewrite so it's not ugly
+        CryptoPP::ByteQueue queue;
+        pubKey.Save(queue);
+        CryptoPP::HexEncoder encoder;
+        queue.CopyTo(encoder);
+        encoder.MessageEnd();
+        std::string encoded;
+        size_t size = encoder.MaxRetrievable();
+        if(size) {
+            encoded.resize(size);       
+        }
+        encoder.Get((byte*)encoded.data(), encoded.size());
+        std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
+
+        CryptoPP::HexDecoder decoder;
+        std::string decoded;
+        decoder.Put( (byte*)encoded.data(), encoded.size() );
+        decoder.MessageEnd();
+
+        size = decoder.MaxRetrievable();
+
+        if(size && size <= SIZE_MAX)
+        {
+            decoded.resize(size);       
+            decoder.Get((byte*)decoded.data(), decoded.size());
+        }
+        //write to public key
+        memcpy(&vch[0], decoded.data(), decoded.size());
+
     }
+
 
     //! Construct a public key using begin/end iterators to byte data.
     template <typename T>
@@ -134,11 +195,13 @@ public:
     //! Implement serialization, as if this was a byte vector.
     unsigned int GetSerializeSize(int nType, int nVersion) const
     {
+        std::cout << "Pub key: serialize size called\n";
         return size() + 1;
     }
     template <typename Stream>
     void Serialize(Stream& s, int nType, int nVersion) const
     {
+        std::cout << "Pub key: serialize called\n";
         unsigned int len = size();
         ::WriteCompactSize(s, len);
         s.write((char*)vch, len);
@@ -146,8 +209,9 @@ public:
     template <typename Stream>
     void Unserialize(Stream& s, int nType, int nVersion)
     {
+        std::cout << "Pub key: unserialize called\n";
         unsigned int len = ::ReadCompactSize(s);
-        if (len <= 65) {
+        if (len <= 108) {
             s.read((char*)vch, len);
         } else {
             // invalid pubkey, skip available data

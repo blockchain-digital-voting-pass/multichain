@@ -43,8 +43,11 @@ using CryptoPP::Integer;
 using CryptoPP::PublicKey;
 using CryptoPP::BufferedTransformation;
 
+#include <../cryptopp/hex.h>
 #include "../cryptopp/asn.h"
 #include "../cryptopp/osrng.h"
+#include <cryptopp/filters.h>
+
 
 
 
@@ -156,40 +159,68 @@ static int ec_privkey_export_der(const secp256k1_context *ctx, unsigned char *pr
 }
  
 bool CKey::Check(const unsigned char *vch) {
-    return secp256k1_ec_seckey_verify(secp256k1_context_sign, vch);
+    //IS NOT USED
+    CryptoPP::AutoSeededRandomPool prng;
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey;
+
+    //privKey.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
+    privKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 160).Ref());
+
+    bool result = privKey.Validate( prng, 3 );
+    return result;
+    //return secp256k1_ec_seckey_verify(secp256k1_context_sign, vch);
 }
 
 void CKey::MakeNewKey(bool fCompressedIn) {
-//    RandAddSeedPerfmon();
-    /*do {
-//        GetRandBytes(vch, sizeof(vch));
-        GetStrongRandBytes(vch, sizeof(vch));
-    } while (!Check(vch));
-    
-    fValid = true;
-    fCompressed = fCompressedIn;*/
-
-
     std::cout << "Calling MakeNewKey\n\n";
 
     //create new private key
     CryptoPP::AutoSeededRandomPool prng;
-    //CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey;
     privKey1.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
-    //std::cout << "Private key size: " << privKey.ByteCount() << "\n";
 
+    //Validate the private key
     bool result = privKey1.Validate( prng, 3 );
     if(!result) {
         std::cout << "Invalid private key generated\n";
         fValid = false; 
     }
 
+    //Write the key to vch
+    //TODO: rewrite this not so stupid/ugly
+    CryptoPP::ByteQueue queue;
+    privKey1.Save(queue);
+    CryptoPP::HexEncoder encoder;
+    queue.CopyTo(encoder);
+    encoder.MessageEnd();
+    std::string encoded;
+    size_t size = encoder.MaxRetrievable();
+    if(size) {
+        encoded.resize(size);       
+    }
+    encoder.Get((byte*)encoded.data(), encoded.size());
+    //std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
+
+    CryptoPP::HexDecoder decoder;
+    std::string decoded;
+    decoder.Put( (byte*)encoded.data(), encoded.size() );
+    decoder.MessageEnd();
+
+    size = decoder.MaxRetrievable();
+    if(size && size <= SIZE_MAX)
+    {
+        decoded.resize(size);       
+        decoder.Get((byte*)decoded.data(), decoded.size());
+    }
+    //write to private key
+    memcpy(&vch[0], decoded.data(), decoded.size());
+    //std::cout << "Decoded: " << decoded << "\nSize: " << decoded.size() << "\n";
+
     fValid = true;
     fCompressed = false;
 }
 
 bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
-    std::cout << "Private key compressed\n";
+    std::cout << "Set private key \n";
     if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), &privkey[0], privkey.size()))
         return false;
     fCompressed = fCompressedIn;
@@ -197,6 +228,7 @@ bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
     return true;
 }
 
+//clone method
 CPrivKey CKey::GetPrivKey() const {
     assert(fValid);
     CPrivKey privkey;
@@ -212,17 +244,6 @@ CPrivKey CKey::GetPrivKey() const {
 
 CPubKey CKey::GetPubKey() const {
     assert(fValid);
-
-    /*secp256k1_pubkey pubkey;
-    size_t clen = 80;
-    CPubKey result;
-    int ret = secp256k1_ec_pubkey_create(secp256k1_context_sign, &pubkey, begin());
-    assert(ret);
-    secp256k1_ec_pubkey_serialize(secp256k1_context_sign, (unsigned char*)result.begin(), &clen, &pubkey, fCompressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED);
-
-    assert(result.size() == clen);
-    assert(result.IsValid());
-    return result;  */
 
     CPubKey result;
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey; 
@@ -240,17 +261,7 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     std::cout << "SIGNING\n\n";
     if (!fValid)
         return false;
-    /*vchSig.resize(72);
-    size_t nSigLen = 72;
-    unsigned char extra_entropy[32] = {0};
-    WriteLE32(extra_entropy, test_case);
-    secp256k1_ecdsa_signature sig;
-    int ret = secp256k1_ecdsa_sign(secp256k1_context_sign, &sig, hash.begin(), begin(), secp256k1_nonce_function_rfc6979, test_case ? extra_entropy : NULL);
-    assert(ret);
-    secp256k1_ecdsa_signature_serialize_der(secp256k1_context_sign, (unsigned char*)&vchSig[0], &nSigLen, &sig);
-    vchSig.resize(nSigLen);*/
 
-    
     //create a signer
     CryptoPP::AutoSeededRandomPool prng;
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer(privKey1);

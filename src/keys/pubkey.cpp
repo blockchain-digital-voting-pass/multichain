@@ -215,17 +215,6 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
         return false;
     }
 
-    // Load the public key
-    /*ECDSA<ECP, SHA256>::PublicKey pubKey;
-    pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 80).Ref());*/
-
-
-    std::cout << "Hash in hex: ";
-    std::cout << std::hex << &hash;
-    std::cout << std::endl;
-
-    std::cout << vchSig[1] << "\n\n";
-
     CryptoPP::RandomNumberGenerator rnd;
     if(!pubKey.Validate(rnd, 3)) {
         std::cout << "Non valid public key\n";
@@ -233,10 +222,6 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
     }
 
     ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
-    //std::vector<char> signature(80);
-    //std::vector<char> data(8);
-    //LoadFile("signature", signature);
-    //LoadFile("data", data);
 
     bool result = verifier.VerifyMessage( 
         /*(const byte*) hash,
@@ -264,6 +249,7 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
 }
 
 bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) {
+    std::cout  << "Recover compact called\n\n";
     if (vchSig.size() != 65)
         return false;
     int recid = (vchSig[0] - 27) & 3;

@@ -77,7 +77,7 @@ private:
     bool fCompressed;
 
     //! The actual byte data
-    unsigned char vch[32];
+    unsigned char vch[76];
 
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey1;
 
@@ -94,6 +94,7 @@ public:
     //! Copy constructor. This is necessary because of memlocking.
     CKey(const CKey& secret) : fValid(secret.fValid), fCompressed(secret.fCompressed)
     {
+        std::cout << "Private key init TODO\n";
         LockObject(vch);
         memcpy(vch, secret.vch, sizeof(vch));
     }
@@ -114,6 +115,7 @@ public:
     template <typename T>
     void Set(const T pbegin, const T pend, bool fCompressedIn)
     {
+        std::cout << "Weird Set called\n\n";
         if (pend - pbegin != 32) {
             fValid = false;
             return;
@@ -128,7 +130,7 @@ public:
     }
 
     //! Simple read-only vector-like interface.
-    unsigned int size() const { return (fValid ? 32 : 0); }
+    unsigned int size() const { return (fValid ? 76 : 0); }
     const unsigned char* begin() const { return vch; }
     const unsigned char* end() const { return vch + size(); }
 
