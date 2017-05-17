@@ -35,7 +35,7 @@ using namespace CryptoPP::ASN1;
 
 
 
-/** 
+/**
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
  * const unsigned int PUBLIC_KEY_SIZE  = 65;
@@ -54,7 +54,7 @@ public:
 };
 
 typedef uint256 ChainCode;
- 
+
 /** An encapsulated public key. */
 class CPubKey
 {
@@ -65,6 +65,7 @@ private:
      * Its length can very cheaply be computed from the first byte.
      */
     unsigned char vch[108];
+    std::string p;
 
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
 
@@ -76,7 +77,7 @@ private:
         if (chHeader == 4 || chHeader == 6 || chHeader == 7)
             return 65;
         return 0;*/
-        if(chHeader == 0) {
+        if(chHeader == 0xFF) {
             return 0;
         }
         return 108;
@@ -103,7 +104,7 @@ public:
         if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
 
-            CryptoPP::HexDecoder decoder;
+            /*CryptoPP::HexDecoder decoder;
             decoder.Put((byte*)&pbegin[0], len);
             decoder.MessageEnd();
 
@@ -112,9 +113,10 @@ public:
 
             q.identity = false;
             q.x.Decode(decoder, len/2);
-            q.y.Decode(decoder, len/2);
+            q.y.Decode(decoder, len/2);*/
 
-            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), q);
+            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 108).Ref());
         }
         else
             Invalidate();
@@ -134,7 +136,7 @@ public:
         std::string encoded;
         size_t size = encoder.MaxRetrievable();
         if(size) {
-            encoded.resize(size);       
+            encoded.resize(size);
         }
         encoder.Get((byte*)encoded.data(), encoded.size());
         std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
@@ -148,11 +150,18 @@ public:
 
         if(size && size <= SIZE_MAX)
         {
-            decoded.resize(size);       
+            decoded.resize(size);
             decoder.Get((byte*)decoded.data(), decoded.size());
         }
         //write to public key
         memcpy(&vch[0], decoded.data(), decoded.size());
+
+        pubKey.Save(CryptoPP::StringSink(p).Ref());
+        std::string s3;
+        CryptoPP::StringSource ss3(p, true, new CryptoPP::HexEncoder(new CryptoPP::StringSink(s3)));
+        std::cout << "Key 1 (not compressed): " << p.size() << " bytes" << "\n";
+        std::cout << "  " << s3 << "\n";
+
 
     }
 
@@ -236,7 +245,7 @@ public:
 
     /*
      * Check syntactic correctness.
-     * 
+     *
      * Note that this is consensus critical as CheckSig() calls it!
      */
     bool IsValid() const
@@ -263,7 +272,7 @@ public:
      * Check whether a signature is normalized (lower-S).
      */
     static bool CheckLowS(const std::vector<unsigned char>& vchSig);
-    
+
     //! Recover a public key from a compact signature.
     bool RecoverCompact(const uint256& hash, const std::vector<unsigned char>& vchSig);
 

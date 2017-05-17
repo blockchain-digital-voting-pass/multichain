@@ -157,7 +157,7 @@ static int ec_privkey_export_der(const secp256k1_context *ctx, unsigned char *pr
     }
     return 1;
 }
- 
+
 bool CKey::Check(const unsigned char *vch) {
     //IS NOT USED
     CryptoPP::AutoSeededRandomPool prng;
@@ -182,7 +182,7 @@ void CKey::MakeNewKey(bool fCompressedIn) {
     bool result = privKey1.Validate( prng, 3 );
     if(!result) {
         std::cout << "Invalid private key generated\n";
-        fValid = false; 
+        fValid = false;
     }
 
     //Write the key to vch
@@ -195,10 +195,10 @@ void CKey::MakeNewKey(bool fCompressedIn) {
     std::string encoded;
     size_t size = encoder.MaxRetrievable();
     if(size) {
-        encoded.resize(size);       
+        encoded.resize(size);
     }
     encoder.Get((byte*)encoded.data(), encoded.size());
-    //std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
+    std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
 
     CryptoPP::HexDecoder decoder;
     std::string decoded;
@@ -208,7 +208,7 @@ void CKey::MakeNewKey(bool fCompressedIn) {
     size = decoder.MaxRetrievable();
     if(size && size <= SIZE_MAX)
     {
-        decoded.resize(size);       
+        decoded.resize(size);
         decoder.Get((byte*)decoded.data(), decoded.size());
     }
     //write to private key
@@ -246,13 +246,20 @@ CPubKey CKey::GetPubKey() const {
     assert(fValid);
 
     CPubKey result;
-    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey; 
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
     CryptoPP::AutoSeededRandomPool prng;
     privKey1.MakePublicKey(pubKey);
     if(!pubKey.Validate(prng, 3)) {
         std::cout << "Could not construct public key from private key!\n\n";
     }
     result.Set(pubKey);
+
+    if(result.IsFullyValid()) {
+        std::cout << "Correct pub key\n";
+    } else {
+        std::cout << "Incorrect pub key\n";
+    }
+
     return result;
 
 }
@@ -269,6 +276,7 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     bool result = signer.AccessKey().Validate( prng, 3 );
     if(!result) {
         std::cout << "Error in validating key\n\n";
+        return false;
     }
 
     // Determine maximum size, allocate a string with the maximum size
@@ -289,7 +297,7 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     }
     // Resize to correct signature length
     vchSig.resize(siglen);
-    return true;    
+    return true;
 }
 
 bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
@@ -316,7 +324,7 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
     int ret = secp256k1_ecdsa_sign_recoverable(secp256k1_context_sign, &sig, hash.begin(), begin(), secp256k1_nonce_function_rfc6979, NULL);
     assert(ret);
     secp256k1_ecdsa_recoverable_signature_serialize_compact(secp256k1_context_sign, (unsigned char*)&vchSig[1], &rec, &sig);
-    assert(ret);    
+    assert(ret);
     assert(rec != -1);
     vchSig[0] = 27 + rec + (fCompressed ? 4 : 0);
     return true;
@@ -394,7 +402,7 @@ void CExtKey::Encode(unsigned char code[74]) const {
     memcpy(code+1, vchFingerprint, 4);
     code[5] = (nChild >> 24) & 0xFF; code[6] = (nChild >> 16) & 0xFF;
     code[7] = (nChild >>  8) & 0xFF; code[8] = (nChild >>  0) & 0xFF;
-    memcpy(code+9, chaincode.begin(), 32);    
+    memcpy(code+9, chaincode.begin(), 32);
     code[41] = 0;
     assert(key.size() == 32);
     memcpy(code+42, key.begin(), 32);
@@ -404,7 +412,7 @@ void CExtKey::Decode(const unsigned char code[74]) {
     nDepth = code[0];
     memcpy(vchFingerprint, code+1, 4);
     nChild = (code[5] << 24) | (code[6] << 16) | (code[7] << 8) | code[8];
-    memcpy(chaincode.begin(), code+9, 32);   
+    memcpy(chaincode.begin(), code+9, 32);
     key.Set(code+42, code+74, true);
 }
 

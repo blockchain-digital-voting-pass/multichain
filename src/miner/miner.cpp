@@ -25,6 +25,7 @@
 
 #include <boost/thread.hpp>
 #include <boost/tuple/tuple.hpp>
+#include <iostream>
 
 using namespace std;
 
@@ -90,22 +91,22 @@ public:
 
 bool UpdateTime(CBlockHeader* pblock, const CBlockIndex* pindexPrev)
 {
-/* MCHN START */    
+/* MCHN START */
     uint32_t original_nTime=pblock->nTime;
     uint32_t original_nBits=pblock->nBits;
-/* MCHN END */    
+/* MCHN END */
     pblock->nTime = std::max(pindexPrev->GetMedianTimePast()+1, GetAdjustedTime());
 
     // Updating time can change work required on testnet:
     if (Params().AllowMinDifficultyBlocks())
         pblock->nBits = GetNextWorkRequired(pindexPrev, pblock);
-/* MCHN START */    
+/* MCHN START */
     if((original_nTime != pblock->nTime) || (original_nBits != pblock->nBits))
     {
         return true;
     }
     return false;
-/* MCHN END */    
+/* MCHN END */
 }
 
 /* MCHN START */
@@ -117,21 +118,21 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
     uint256 original_merkle_root;
     std::vector<unsigned char> vchSigOut;
     std::vector<unsigned char> vchPubKey;
-    
+
     block->nMerkleTreeType=MERKLETREE_FULL;
     block->nSigHashType=BLOCKSIGHASH_NONE;
-    
+
     if(!mc_gState->m_NetworkParams->IsProtocolMultichain())
     {
         block->hashMerkleRoot=block->BuildMerkleTree();
         return true;
     }
-    
+
     if(block->vSigner[0] == 0)
     {
         return false;
     }
-    
+
     coinbase_tx=-1;
     op_return_output=-1;
     for (unsigned int i = 0; i < block->vtx.size(); i++)
@@ -145,22 +146,22 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
                 for (unsigned int j = 0; j < tx.vout.size(); j++)
                 {
 
-                    const CScript& script1 = tx.vout[j].scriptPubKey;        
+                    const CScript& script1 = tx.vout[j].scriptPubKey;
                     if(script1.IsUnspendable())
                     {
-                        op_return_output=j;                        
+                        op_return_output=j;
                     }
                 }
             }
         }
     }
-    
+
     if(coinbase_tx<0)
     {
         block->nSigHashType=BLOCKSIGHASH_INVALID;
         return false;
     }
-    
+
     if((hash_type == BLOCKSIGHASH_HEADER) && (op_return_output >= 0))
     {
         block->nSigHashType=BLOCKSIGHASH_INVALID;
@@ -172,15 +173,15 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
         tx.vout.clear();
         for(int i=0;i<(int)block->vtx[coinbase_tx].vout.size();i++)
         {
-            if((i != op_return_output) && 
-               ((block->vtx[coinbase_tx].vout[i].nValue != 0) || (mc_gState->m_Permissions->m_Block == 0)))    
+            if((i != op_return_output) &&
+               ((block->vtx[coinbase_tx].vout[i].nValue != 0) || (mc_gState->m_Permissions->m_Block == 0)))
             {
                 tx.vout.push_back(block->vtx[coinbase_tx].vout[i]);
             }
-        }        
+        }
         block->vtx[coinbase_tx]=tx;
-    }    
-        
+    }
+
     switch(hash_type)
     {
         case BLOCKSIGHASH_HEADER:
@@ -193,22 +194,22 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
             block->hashMerkleRoot=block->BuildMerkleTree();
             block->nNonce=0;
             hash_to_verify=block->GetHash();
-            block->nMerkleTreeType=MERKLETREE_FULL;                
+            block->nMerkleTreeType=MERKLETREE_FULL;
             break;
         default:
             block->nSigHashType=BLOCKSIGHASH_INVALID;
             return false;
     }
-    
+
     CMutableTransaction tx=block->vtx[coinbase_tx];
     tx.vout.clear();
     for(int i=0;i<(int)block->vtx[coinbase_tx].vout.size();i++)
     {
         tx.vout.push_back(block->vtx[coinbase_tx].vout[i]);
-    }        
-    
+    }
+
     CTxOut txOut;
-    
+
     txOut.nValue = 0;
     txOut.scriptPubKey = CScript() << OP_RETURN;
 
@@ -223,13 +224,13 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
     {
         return false;
     }
-    
+
     vector<unsigned char> vchSig;
     key.Sign(hash_to_verify, vchSig);
-    
+
     mc_Script *lpScript;
     lpScript=new mc_Script;
-    
+
     lpScript->SetBlockSignature(vchSig.data(),vchSig.size(),hash_type,block->vSigner+1,block->vSigner[0]);
 
     for(int element=0;element < lpScript->GetNumElements();element++)
@@ -241,11 +242,11 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
         }
     }
     delete lpScript;
-    
+
     tx.vout.push_back(txOut);
-        
+
     block->vtx[coinbase_tx]=tx;
-    
+
     switch(hash_type)
     {
         case BLOCKSIGHASH_NO_SIGNATURE_AND_NONCE:
@@ -256,13 +257,13 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
     return true;
 }
 
-/* MCHN END */    
+/* MCHN END */
 
 
-/* MCHN START */    
+/* MCHN START */
 //CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CPubKey *ppubkey,int *canMine)
-/* MCHN END */    
+/* MCHN END */
 {
     // Create new block
     auto_ptr<CBlockTemplate> pblocktemplate(new CBlockTemplate());
@@ -278,8 +279,8 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
     CMutableTransaction txNew;
     txNew.vin.resize(1);
     txNew.vin[0].prevout.SetNull();
-    
-/* MCHN START */    
+
+/* MCHN START */
 
     txNew.vout.resize(1);
 
@@ -288,9 +289,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
     {
         prevCanMine=*canMine;
     }
-    
-/* MCHN END */    
-    
+
+/* MCHN END */
+
     txNew.vout[0].scriptPubKey = scriptPubKeyIn;
 
     // Add dummy coinbase tx as first transaction
@@ -318,7 +319,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
 
     {
         LOCK2(cs_main, mempool.cs);
-                
+
         CBlockIndex* pindexPrev = chainActive.Tip();
         const int nHeight = pindexPrev->nHeight + 1;
         CCoinsViewCache view(pcoinsTip);
@@ -331,25 +332,25 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
         // This vector will be sorted into a priority queue:
         vector<TxPriority> vecPriority;
         vecPriority.reserve(mempool.mapTx.size());
-/* MCHN START */        
-// mempool records are processed in the order they were accepted       
-        
+/* MCHN START */
+// mempool records are processed in the order they were accepted
+
         set <uint256> setAdded;
-/*        
+/*
         for (map<uint256, CTxMemPoolEntry>::iterator mi = mempool.mapTx.begin();
              mi != mempool.mapTx.end(); ++mi)
         {
             const CTransaction& tx = mi->second.GetTx();
-  */          
-            
+  */
+
         double orderPriority=mempool.mapTx.size();
-        
-        mempool.defragmentHashList();    
+
+        mempool.defragmentHashList();
         for(int pos=0;pos<mempool.hashList->m_Count;pos++)
         {
             uint256 hash;
             hash=*(uint256*)mempool.hashList->GetRow(pos);
-            
+
             if(!mempool.exists(hash))
             {
                 LogPrint("mchn","mchn-miner: Tx not found in the mempool: %s\n",hash.GetHex().c_str());
@@ -358,18 +359,18 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
             if(IsTxBanned(hash))
             {
                 LogPrint("mchn","mchn-miner: Banned Tx: %s\n",hash.GetHex().c_str());
-                continue;                
+                continue;
             }
-            
+
             const CTransaction& tx = mempool.mapTx[hash].GetTx();
-/* MCHN END */        
-            
+/* MCHN END */
+
             if (tx.IsCoinBase() || !IsFinalTx(tx, nHeight))
             {
                 LogPrint("mchn","mchn-miner: Coinbase or not final tx found: %s\n",tx.GetHash().GetHex().c_str());
                 continue;
             }
-            
+
             COrphan* porphan = NULL;
             double dPriority = 0;
             CAmount nTotalIn = 0;
@@ -393,10 +394,10 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
                     }
 
                     // Has to wait for dependencies
-/* MCHN START */                    
+/* MCHN START */
                     if(setAdded.count(txin.prevout.hash) == 0)
                     {
-/* MCHN END */                    
+/* MCHN END */
                         if (!porphan)
                         {
                             // Use list for automatic deletion
@@ -405,9 +406,9 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
                         }
                         mapDependers[txin.prevout.hash].push_back(porphan);
                         porphan->setDependsOn.insert(txin.prevout.hash);
-/* MCHN START */                    
+/* MCHN START */
                     }
-/* MCHN END */                    
+/* MCHN END */
                     nTotalIn += mempool.mapTx[txin.prevout.hash].GetTx().vout[txin.prevout.n].nValue;
                     continue;
                 }
@@ -426,24 +427,24 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
                 LogPrint("mchn","mchn-miner: Missing inputs for %s\n",tx.GetHash().GetHex().c_str());
                 continue;
             }
-            
+
             // Priority is sum(valuein * age) / modified_txsize
             unsigned int nTxSize = ::GetSerializeSize(tx, SER_NETWORK, PROTOCOL_VERSION);
             dPriority = tx.ComputePriority(dPriority, nTxSize);
 
-/* MCHN START */            
+/* MCHN START */
 // Priority ignored - txs are processed in the order they were accepted
             dPriority=orderPriority;
-            orderPriority-=1.;            
-            
+            orderPriority-=1.;
+
 //            uint256 hash = tx.GetHash();
-/* MCHN END */                        
+/* MCHN END */
             mempool.ApplyDeltas(hash, dPriority, nTotalIn);
 
             CFeeRate feeRate(nTotalIn-tx.GetValueOut(), nTxSize);
 /* MCHN START */
-            
-/* MCHN END */            
+
+/* MCHN END */
             if (porphan)
             {
                 LogPrint("mchn","mchn-miner: Orphan %s\n",tx.GetHash().GetHex().c_str());
@@ -451,13 +452,13 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
                 porphan->feeRate = feeRate;
             }
             else
-/* MCHN START */            
+/* MCHN START */
             {
                 setAdded.insert(tx.GetHash());
                 vecPriority.push_back(TxPriority(dPriority, feeRate, &tx));
             }
 //                vecPriority.push_back(TxPriority(dPriority, feeRate, &mi->second.GetTx()));
-/* MCHN END */            
+/* MCHN END */
         }
 
         // Collect transactions into block
@@ -466,11 +467,11 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
         int nBlockSigOps = 100;
 //        bool fSortedByFee = (nBlockPrioritySize <= 0);
 
-/* MCHN START */            
+/* MCHN START */
         TxPriorityCompare comparer(false);
 //        TxPriorityCompare comparer(fSortedByFee);
         bool overblocksize_logged=false;
-/* MCHN END */            
+/* MCHN END */
         std::make_heap(vecPriority.begin(), vecPriority.end(), comparer);
 
         while (!vecPriority.empty())
@@ -507,7 +508,7 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
             double dPriorityDelta = 0;
             CAmount nFeeDelta = 0;
             mempool.ApplyDeltas(hash, dPriorityDelta, nFeeDelta);
-/* MCHN             
+/* MCHN
             if (fSortedByFee && (dPriorityDelta <= 0) && (nFeeDelta <= 0) && (feeRate < ::minRelayTxFee) && (nBlockSize + nTxSize >= nBlockMinSize))
                 continue;
 
@@ -540,16 +541,16 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
             // policy here, but we still have to ensure that the block we
             // create only contains transactions that are valid in new blocks.
             CValidationState state;
-            
-/* MCHN START */            
+
+/* MCHN START */
 //            if (!CheckInputs(tx, state, view, true, MANDATORY_SCRIPT_VERIFY_FLAGS, true))// May fail if send permission was lost
-            if (!CheckInputs(tx, state, view, false, 0, true))    
-/* MCHN END */            
+            if (!CheckInputs(tx, state, view, false, 0, true))
+/* MCHN END */
             {
                 LogPrint("mchn","mchn-miner: CheckInput failure %s\n",tx.GetHash().GetHex().c_str());
                 continue;
             }
-                       
+
             CTxUndo txundo;
             UpdateCoins(tx, state, view, txundo, nHeight);
 
@@ -589,10 +590,10 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
         nLastBlockTx = nBlockTx;
         nLastBlockSize = nBlockSize;
 
-/* MCHN START */    
-// If block was dropped, this happens too many times        
+/* MCHN START */
+// If block was dropped, this happens too many times
 //        LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
-/* MCHN END */    
+/* MCHN END */
 
         // Compute final coinbase transaction.
         txNew.vout[0].nValue = GetBlockValue(nHeight, nFees);
@@ -600,11 +601,11 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
 
         pblock->vSigner[0]=ppubkey->size();
         memcpy(pblock->vSigner+1,ppubkey->begin(),pblock->vSigner[0]);
-        
+
         pblock->vtx[0] = txNew;
         pblocktemplate->vTxFees[0] = -nFees;
-        
-        
+
+
         // Fill in header
         pblock->hashPrevBlock  = pindexPrev->GetBlockHash();
         UpdateTime(pblock, pindexPrev);
@@ -612,10 +613,10 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
         pblock->nNonce         = 0;
         pblocktemplate->vTxSigOps[0] = GetLegacySigOpCount(pblock->vtx[0]);
 
-/* MCHN START */    
+/* MCHN START */
         bool testValidity=true;
-        
-// If this node cannot mine for some reason (permission or diversity, block is not tested for validity to avoid exception        
+
+// If this node cannot mine for some reason (permission or diversity, block is not tested for validity to avoid exception
         if(mc_gState->m_NetworkParams->IsProtocolMultichain())
         {
             if(canMine)
@@ -636,12 +637,12 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
                     {
                         LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
                         LogPrintf("mchn: MultiChainMiner: Starting mining...\n");
-                    }                    
+                    }
                 }
-            }            
+            }
         }
         else
-        {        
+        {
             LogPrintf("CreateNewBlock(): total size %u\n", nBlockSize);
         }
 
@@ -649,29 +650,29 @@ CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn,CWallet *pwallet,CP
         {
             testValidity=false;
         }
-        
+
         if(testValidity)
-        {            
-/* MCHN END */    
-            
+        {
+/* MCHN END */
+
         CValidationState state;
         if (!TestBlockValidity(state, *pblock, pindexPrev, false, false))
             throw std::runtime_error("CreateNewBlock() : TestBlockValidity failed");
-            
-/* MCHN START */    
+
+/* MCHN START */
         }
-/* MCHN END */    
+/* MCHN END */
     }
 
     return pblocktemplate.release();
 }
 
-/* MCHN START */    
+/* MCHN START */
 CBlockTemplate* CreateNewBlock(const CScript& scriptPubKeyIn)
 {
     return CreateNewBlock(scriptPubKeyIn,NULL,NULL,NULL);
 }
-/* MCHN END */    
+/* MCHN END */
 
 
 void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& nExtraNonce,CWallet *pwallet)
@@ -690,11 +691,11 @@ void IncrementExtraNonce(CBlock* pblock, CBlockIndex* pindexPrev, unsigned int& 
     assert(txCoinbase.vin[0].scriptSig.size() <= 100);
 
     pblock->vtx[0] = txCoinbase;
-    
-/* MCHN START */    
+
+/* MCHN START */
     CreateBlockSignature(pblock,BLOCKSIGHASH_NO_SIGNATURE_AND_NONCE,pwallet);
     pblock->hashMerkleRoot = pblock->BuildMerkleTree();
-/* MCHN END */    
+/* MCHN END */
 }
 
 #ifdef ENABLE_WALLET
@@ -728,15 +729,15 @@ bool static ScanHash(const CBlockHeader *pblock, uint32_t& nNonce, uint256 *phas
 
         // Return the nonce if the hash has at least some zero bits,
         // caller will check if it has enough to reach the target
-/*        
-        if (((uint16_t*)phash)[15] == 0) 
+/*
+        if (((uint16_t*)phash)[15] == 0)
             return true;
 */
         if( (((uint16_t*)phash)[15] & success_and_mask) == 0)
         {
-            return true;            
+            return true;
         }
-        
+
         // If nothing found after trying for a while, return -1
         if ((nNonce & 0xffff) == 0)
 //        if ((nNonce & 0xff) == 0)
@@ -752,19 +753,19 @@ CBlockTemplate* CreateNewBlockWithKey(CReserveKey& reservekey)
     if (!reservekey.GetReservedKey(pubkey))
         return NULL;
 
-    CScript scriptPubKey = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;    
+    CScript scriptPubKey = CScript() << ToByteVector(pubkey) << OP_CHECKSIG;
     return CreateNewBlock(scriptPubKey);
 }
 
-/* MCHN START */    
+/* MCHN START */
 // Block should be mined for specific keys, not just any from pool
 
 
 CBlockTemplate* CreateNewBlockWithDefaultKey(CWallet *pwallet,int *canMine)
 {
-    CPubKey pubkey;            
+    CPubKey pubkey;
     bool key_found;
-    
+
     {
         LOCK(cs_main);
         key_found=pwallet->GetKeyFromAddressBook(pubkey,MC_PTP_MINE);
@@ -776,20 +777,20 @@ CBlockTemplate* CreateNewBlockWithDefaultKey(CWallet *pwallet,int *canMine)
             if(*canMine & MC_PTP_MINE)
             {
                 *canMine=0;
-                LogPrintf("mchn: Cannot find address having mining permission\n");        
+                LogPrintf("mchn: Cannot find address having mining permission\n");
             }
         }
-        return NULL;        
+        return NULL;
     }
-    
+
     const unsigned char *pubkey_hash=(unsigned char *)Hash160(pubkey.begin(),pubkey.end()).begin();
-    
+
     CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << vector<unsigned char>(pubkey_hash, pubkey_hash + 20) << OP_EQUALVERIFY << OP_CHECKSIG;
-    
+
     return CreateNewBlock(scriptPubKey,pwallet,&pubkey,canMine);
 }
 
-/* MCHN END */    
+/* MCHN END */
 
 bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 {
@@ -801,7 +802,7 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
         LOCK(cs_main);
         if(mc_gState->m_NodePausedState & MC_NPS_MINING)
         {
-            return error("MultiChainMiner : mining is paused, generated block is dropped");            
+            return error("MultiChainMiner : mining is paused, generated block is dropped");
         }
         if (pblock->hashPrevBlock != chainActive.Tip()->GetBlockHash())
         {
@@ -829,26 +830,26 @@ bool ProcessBlockFound(CBlock* pblock, CWallet& wallet, CReserveKey& reservekey)
 set <CTxDestination> LastActiveMiners(CBlockIndex* pindexTip, CPubKey *kLastMiner, int nMinerPoolSize)
 {
     int nRelativeWindowSize=5;
-    
+
     int nTotalMiners=mc_gState->m_Permissions->GetMinerCount();
     int nActiveMiners=mc_gState->m_Permissions->GetActiveMinerCount();
     int nDiversityMiners=0;
     int nWindowSize;
     CBlockIndex* pindex;
-    set <CTxDestination> sMiners;   
-            
+    set <CTxDestination> sMiners;
+
     if(mc_gState->m_NetworkParams->IsProtocolMultichain() == 0)
     {
         return sMiners;
     }
-    
+
     if(mc_gState->m_NetworkParams->GetInt64Param("anyonecanmine") == 0)
     {
        nDiversityMiners=nTotalMiners-nActiveMiners;
     }
-    
+
     nWindowSize=nRelativeWindowSize*nMinerPoolSize+nDiversityMiners;
-    
+
     pindex=pindexTip;
     for(int i=0;i<nWindowSize;i++)
     {
@@ -875,7 +876,7 @@ set <CTxDestination> LastActiveMiners(CBlockIndex* pindexTip, CPubKey *kLastMine
                         if(sMiners.find(addr) == sMiners.end())
                         {
                             sMiners.insert(addr);
-                        }                    
+                        }
                     }
                 }
                 if(pindex == pindexTip)
@@ -885,8 +886,8 @@ set <CTxDestination> LastActiveMiners(CBlockIndex* pindexTip, CPubKey *kLastMine
                 pindex=pindex->pprev;
             }
         }
-    }    
-    
+    }
+
     return sMiners;
 }
 
@@ -917,9 +918,9 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
     double dRelativeMinerPoolSize=0.25;
     double dAverageCreateBlockTime=2;
     double dMinerDriftMin=mc_gState->m_NetworkParams->ParamAccuracy();
-    double dEmergencyMinersConvergenceRate=2.;    
+    double dEmergencyMinersConvergenceRate=2.;
     int nPastBlocks=12;
-    
+
     set <CTxDestination> sPrevMinerPool;
     set <CTxDestination> sThisMinerPool;
     CBlockIndex* pindex;
@@ -931,7 +932,7 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
     bool fWaitingForMiner=false;
     bool fInMinerPool;
     int nMinerPoolSize,nStdMinerPoolSize,nWindowSize;
-    double dTargetSpacing,dSpread,dExpectedTimeByLast,dExpectedTimeByPast,dEmergencyMiners,dExpectedTime,dExpectedTimeMin,dExpectedTimeMax,dAverageGap;    
+    double dTargetSpacing,dSpread,dExpectedTimeByLast,dExpectedTimeByPast,dEmergencyMiners,dExpectedTime,dExpectedTimeMin,dExpectedTimeMax,dAverageGap;
     double dMinerDrift,dActualMinerDrift;
 
     pindexTip = chainActive.Tip();
@@ -949,9 +950,9 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
                 else
                 {
                     fWaitingForMiner=true;
-                    fNewBlock=true;                    
+                    fNewBlock=true;
                 }
-            }                                    
+            }
         }
         else
         {
@@ -962,35 +963,35 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
     {
         fNewBlock=true;
     }
-    
+
     *lphLastBlockHash=pindexTip->GetBlockHash();
     *lpnMemPoolSize=mempool.hashList->m_Count;
-    
-    if( (Params().Interval() > 0) ||                                            // POW 
-        (mc_gState->m_Permissions->m_Block <= 1) )    
+
+    if( (Params().Interval() > 0) ||                                            // POW
+        (mc_gState->m_Permissions->m_Block <= 1) )
     {
         pwallet->GetKeyFromAddressBook(kThisMiner,MC_PTP_MINE);
         *lpkMiner=kThisMiner;
         *lpdMiningStartTime=mc_TimeNowAsDouble();                               // start mining immediately
         return *lpdMiningStartTime;
-    }        
-    
-    
+    }
+
+
     dMinerDrift=Params().MiningTurnover();
     if(dMinerDrift > 1.0)
     {
         dMinerDrift=1.0;
-    }    
+    }
     dMinerDrift-=dMinerDriftMin;
     if(dMinerDrift < 0)
     {
         dMinerDrift=0.;
     }
-    
-    dTargetSpacing=Params().TargetSpacing();    
+
+    dTargetSpacing=Params().TargetSpacing();
     dSpread=dRelativeSpread*dTargetSpacing;
 
-    *lpdMiningStartTime=mc_TimeNowAsDouble() + 0.5 * dTargetSpacing;        
+    *lpdMiningStartTime=mc_TimeNowAsDouble() + 0.5 * dTargetSpacing;
     dExpectedTimeByLast=pindexTip->dTimeReceived+dTargetSpacing;
     if(dExpectedTimeByLast < mc_TimeNowAsDouble() + dTargetSpacing - 0.5 * dSpread) // Can happen while in reorg or if dTimeReceived is not set
     {
@@ -1000,7 +1001,7 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
     }
     dExpectedTimeMin=dExpectedTimeByLast - 0.5 * dSpread;
     dExpectedTimeMax=dExpectedTimeByLast + 0.5 * dSpread;
-    
+
     dAverageGap=0;
     nWindowSize=0;
     if(fNewBlock)
@@ -1017,17 +1018,17 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
                 pindex=pindex->pprev;
             }
         }
-                
+
         dAverageGap=(dExpectedTimeByLast-dAverageGap) / nWindowSize;
-        
+
         dExpectedTimeByPast /= nWindowSize;
         dExpectedTimeByPast += (nWindowSize + 1) * 0.5 * dTargetSpacing;
-       
-        
+
+
         if(dAverageGap < 0.5*dTargetSpacing)                                    // Catching up
         {
             dExpectedTime=mc_TimeNowAsDouble() + dTargetSpacing;
-            nWindowSize=0;                          
+            nWindowSize=0;
         }
         else
         {
@@ -1045,13 +1046,13 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
                 if(dExpectedTime < dExpectedTimeMin)
                 {
                     dExpectedTime = dExpectedTimeMin;
-                }            
+                }
             }
         }
-        
+
         *lpdMiningStartTime=dExpectedTime;
     }
-    
+
     fInMinerPool=false;
     if(mc_gState->m_NetworkParams->IsProtocolMultichain())
     {
@@ -1066,18 +1067,18 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
             nStdMinerPoolSize=nMinerPoolSizeMax;
         }
         nMinerPoolSize=nStdMinerPoolSize;
-        nStdMinerPoolSize=(int)(dMinerDrift * nStdMinerPoolSize) + 1;            
-               
+        nStdMinerPoolSize=(int)(dMinerDrift * nStdMinerPoolSize) + 1;
+
         dActualMinerDrift=dMinerDrift;
         if(dActualMinerDrift < dMinerDriftMin)
         {
             dActualMinerDrift=dMinerDriftMin;
         }
-        
+
         sThisMinerPool=LastActiveMiners(pindexTip,&kLastMiner,nStdMinerPoolSize);
         nMinerPoolSize=sThisMinerPool.size();
         *lpsMinerPool=sThisMinerPool;
-        
+
         fInMinerPool=false;
         if(!pwallet->GetKeyFromAddressBook(kThisMiner,MC_PTP_MINE,&sThisMinerPool))
         {
@@ -1087,7 +1088,7 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
         {
             fInMinerPool=true;
         }
-        
+
         if( fInMinerPool ||
             (sPrevMinerPool.find(kLastMiner.GetID()) == sPrevMinerPool.end()) ||
             (*lpdActiveMiners < -0.5) )
@@ -1095,15 +1096,15 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
             *lpdActiveMiners=(double)GetMaxActiveMinersCount() - nMinerPoolSize;
             *lpdActiveMiners/=dActualMinerDrift;
         }
-        *lpdActiveMiners *= (1. - dActualMinerDrift);            
+        *lpdActiveMiners *= (1. - dActualMinerDrift);
         if(*lpdActiveMiners < 1.0)
         {
-            *lpdActiveMiners=1; 
+            *lpdActiveMiners=1;
         }
         if(dMinerDrift >= dMinerDriftMin)
         {
             if(!fInMinerPool)
-            {            
+            {
                 if( (*lpdActiveMiners < 0.5) || ( mc_RandomDouble() < dMinerDrift /(*lpdActiveMiners)))
                 {
                     fInMinerPool=true;
@@ -1113,27 +1114,27 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
         }
         if(fInMinerPool)
         {
-            *lpdActiveMiners=(double)GetMaxActiveMinersCount() - nMinerPoolSize;            
+            *lpdActiveMiners=(double)GetMaxActiveMinersCount() - nMinerPoolSize;
             *lpdActiveMiners/=dActualMinerDrift;
         }
 
         if(fInMinerPool)
         {
             *lpdMiningStartTime += mc_RandomDouble() * dSpread;
-            *lpdMiningStartTime -= dSpread / (nMinerPoolSize + 1);                    
+            *lpdMiningStartTime -= dSpread / (nMinerPoolSize + 1);
         }
         else
         {
             dEmergencyMiners=(double)GetMaxActiveMinersCount();
             *lpdMiningStartTime=dExpectedTimeMax;
             *lpdMiningStartTime += dSpread;
-            *lpdMiningStartTime -= dSpread / (nMinerPoolSize + 1);                                
+            *lpdMiningStartTime -= dSpread / (nMinerPoolSize + 1);
             *lpdMiningStartTime += dAverageCreateBlockTime + mc_RandomDouble() * dAverageCreateBlockTime;
             while( (dEmergencyMiners > 0.5) && (mc_RandomDouble() > 1./(dEmergencyMiners)))
             {
                 *lpdMiningStartTime += dAverageCreateBlockTime;
                 dEmergencyMiners /= dEmergencyMinersConvergenceRate;
-            }            
+            }
         }
     }
     else
@@ -1144,7 +1145,7 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
         {
             *lpdMiningStartTime -= dAverageCreateBlockTime / 2;
             dEmergencyMiners /= dEmergencyMinersConvergenceRate;
-        }            
+        }
         if(*lpdMiningStartTime < dExpectedTimeMin)
         {
             *lpdMiningStartTime = dExpectedTimeMin;
@@ -1154,7 +1155,7 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
         {
             *lpdMiningStartTime += dAverageCreateBlockTime;
             dEmergencyMiners /= dEmergencyMinersConvergenceRate;
-        }            
+        }
     }
 
     if(!fWaitingForMiner)
@@ -1170,12 +1171,12 @@ double GetMinerAndExpectedMiningStartTime(CWallet *pwallet,CPubKey *lpkMiner,set
         }
         else
         {
-            LogPrint("mcminer","mchn-miner: miner not found, height: %d, gap: %8.3fs, miners: (tot: %d, max: %d, pool: %d)\n",            
+            LogPrint("mcminer","mchn-miner: miner not found, height: %d, gap: %8.3fs, miners: (tot: %d, max: %d, pool: %d)\n",
                              chainActive.Tip()->nHeight,dAverageGap,
                              mc_gState->m_Permissions->GetMinerCount(),GetMaxActiveMinersCount(),
                              nMinerPoolSize);
         }
-    }    
+    }
     *lpkMiner=kThisMiner;
     return *lpdMiningStartTime;
 }
@@ -1189,20 +1190,20 @@ void static BitcoinMiner(CWallet *pwallet)
     // Each thread has its own key and counter
     CReserveKey reservekey(pwallet);
     unsigned int nExtraNonce = 0;
-    
-/* MCHN START */            
+
+/* MCHN START */
     int canMine;
     int prevCanMine;
     canMine=MC_PTP_MINE;
     prevCanMine=canMine;
-    
+
     double dActiveMiners=-1;
     double dMiningStartTime=-1.;
     uint256 hLastBlockHash=0;
-    int nMemPoolSize=0;    
+    int nMemPoolSize=0;
     set <CTxDestination> sMinerPool;
     CPubKey kMiner;
-    
+
     int wSize=10;
     int wPos=0;
     int EmptyBlockToMine;
@@ -1210,10 +1211,10 @@ void static BitcoinMiner(CWallet *pwallet)
     double wTime[10];
     memset(wCount,0,wSize*sizeof(uint64_t));
     memset(wTime,0,wSize*sizeof(uint64_t));
-    
+
     uint16_t success_and_mask=0xffff;
     int min_bits;
-    
+
     if(Params().Interval() <= 0)
     {
         min_bits=(int)mc_gState->m_NetworkParams->GetInt64Param("powminimumbits");
@@ -1222,34 +1223,34 @@ void static BitcoinMiner(CWallet *pwallet)
             success_and_mask = success_and_mask << (16 - min_bits);
         }
     }
-    
-/* MCHN END */            
-    
+
+/* MCHN END */
+
 
     try {
         while (true) {
-/* MCHN START */            
+/* MCHN START */
             bool not_setup_period=true;
-            
+
             if(mc_gState->m_NodePausedState & MC_NPS_MINING)
             {
                 __US_Sleep(1000);
-                boost::this_thread::interruption_point();                                    
-            }            
-            
+                boost::this_thread::interruption_point();
+            }
+
             if(mc_gState->m_NetworkParams->IsProtocolMultichain())
             {
                 if((canMine & MC_PTP_MINE) == 0)
                 {
                     __US_Sleep(1000);
-                    boost::this_thread::interruption_point();                    
+                    boost::this_thread::interruption_point();
                 }
                 if(mc_gState->m_Permissions->IsSetupPeriod())
                 {
                     not_setup_period=false;
                 }
             }
-            if (Params().MiningRequiresPeers() 
+            if (Params().MiningRequiresPeers()
                     && not_setup_period
                     && ( (mc_gState->m_Permissions->GetMinerCount() > 1)
                     || (mc_gState->m_NetworkParams->GetInt64Param("anyonecanmine") != 0)
@@ -1259,12 +1260,12 @@ void static BitcoinMiner(CWallet *pwallet)
 
                 // Busy-wait for the network to come online so we don't waste time mining
                 // on an obsolete chain. In regtest mode we expect to fly solo.
-                
+
                 bool wait_for_peers=true;
                 if(wait_for_peers)
                 {
                     int active_nodes=0;
-                    
+
                     while ((active_nodes == 0) && (mc_gState->m_Permissions->GetMinerCount() > 1) && Params().MiningRequiresPeers())
                     {
                         vector<CNode*> vNodesCopy = vNodes;
@@ -1275,20 +1276,20 @@ void static BitcoinMiner(CWallet *pwallet)
                                 active_nodes++;
                             }
                         }
-                    
+
                         if(active_nodes == 0)
                         MilliSleep(1000);
                     }
                 }
             }
-            
+
             //
             // Create new block
             //
             unsigned int nTransactionsUpdatedLast = mempool.GetTransactionsUpdated();
             CBlockIndex* pindexPrev = chainActive.Tip();
             EmptyBlockToMine=0;
-            
+
             bool fMineEmptyBlocks=true;
             if(Params().MineEmptyRounds()+mc_gState->m_NetworkParams->ParamAccuracy()>= 0)
             {
@@ -1312,7 +1313,7 @@ void static BitcoinMiner(CWallet *pwallet)
                         {
                             nMaxEmptyBlocks=(int)d+1;
                         }
-                        
+
                         fMineEmptyBlocks=false;
                         while(!fMineEmptyBlocks && (pindex != NULL) && (nEmptyBlocks < nMaxEmptyBlocks))
                         {
@@ -1335,7 +1336,7 @@ void static BitcoinMiner(CWallet *pwallet)
                 else
                 {
                     fMineEmptyBlocks=true;
-                }                
+                }
             }
             if(!fMineEmptyBlocks)
             {
@@ -1350,7 +1351,7 @@ void static BitcoinMiner(CWallet *pwallet)
             {
                 nMemPoolSize=1;
             }
-            
+
             canMine=MC_PTP_MINE;
             if(mc_TimeNowAsDouble() < GetMinerAndExpectedMiningStartTime(pwallet, &kMiner,&sMinerPool, &dMiningStartTime,&dActiveMiners,&hLastBlockHash,&nMemPoolSize))
             {
@@ -1360,7 +1361,7 @@ void static BitcoinMiner(CWallet *pwallet)
             {
                 if(!kMiner.IsValid())
                 {
-                    canMine=0;                    
+                    canMine=0;
                 }
                 else
                 {
@@ -1380,7 +1381,7 @@ void static BitcoinMiner(CWallet *pwallet)
                     }
                 }
             }
-            
+
             if(mc_gState->m_ProtocolVersionToUpgrade > mc_gState->m_NetworkParams->ProtocolVersion())
             {
                 canMine=0;
@@ -1389,25 +1390,30 @@ void static BitcoinMiner(CWallet *pwallet)
             if(mc_gState->m_NodePausedState & MC_NPS_MINING)
             {
                 canMine=0;
-            }            
-            
+            }
+
             if(fReindex)
             {
-                canMine=0;                
+                canMine=0;
             }
-            
+
             if(canMine & MC_PTP_MINE)
             {
                 const unsigned char *pubkey_hash=(unsigned char *)Hash160(kMiner.begin(),kMiner.end()).begin();
                 CScript scriptPubKey = CScript() << OP_DUP << OP_HASH160 << vector<unsigned char>(pubkey_hash, pubkey_hash + 20) << OP_EQUALVERIFY << OP_CHECKSIG;
                 canMine=prevCanMine;
-                auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlock(scriptPubKey,pwallet,&kMiner,&canMine));            
+                auto_ptr<CBlockTemplate> pblocktemplate(CreateNewBlock(scriptPubKey,pwallet,&kMiner,&canMine));
                 prevCanMine=canMine;
-/* MCHN END */    
+/* MCHN END */
             if (!pblocktemplate.get())
             {
                 LogPrintf("Error in MultiChainMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
+            }
+            if(kMiner.IsFullyValid()) {
+                std::cout << "Miner: pub full valid\n";
+            } else {
+                std::cout << "Miner: pub full invalid\n";
             }
             CBlock *pblock = &pblocktemplate->block;
             IncrementExtraNonce(pblock, pindexPrev, nExtraNonce,pwallet);
@@ -1427,7 +1433,7 @@ void static BitcoinMiner(CWallet *pwallet)
             double wStartTime=mc_TimeNowAsDouble();
             uint64_t wThisCount=0;
             while (true) {
-                
+
                 if(EmptyBlockToMine)
                 {
                     if(chainActive.Tip()->nHeight != EmptyBlockToMine-1)
@@ -1436,13 +1442,13 @@ void static BitcoinMiner(CWallet *pwallet)
                         break;
                     }
                 }
-                
+
                 bool fFound = ScanHash(pblock, nNonce, &hash, success_and_mask);
                 uint32_t nHashesDone = nNonce - nOldNonce;
                 nOldNonce = nNonce;
 
                 wThisCount+=nHashesDone;
-                        
+
                 // Check if something found
                 if (fFound)
                 {
@@ -1456,11 +1462,11 @@ void static BitcoinMiner(CWallet *pwallet)
 
                         LogPrintf("MultiChainMiner: Block Found - %s, prev: %s, height: %d, txs: %d\n",
                                 hash.GetHex(),pblock->hashPrevBlock.ToString().c_str(),mc_gState->m_Permissions->m_Block+1,(int)pblock->vtx.size());
-/*                        
+/*
                         LogPrintf("MultiChainMiner:\n");
                         LogPrintf("proof-of-work found  \n  hash: %s  \ntarget: %s\n", hash.GetHex(), hashTarget.GetHex());
-*/                     
-/* MCHN START */                        
+*/
+/* MCHN START */
                         if(mc_gState->m_ProtocolVersionToUpgrade > mc_gState->m_NetworkParams->ProtocolVersion())
                         {
                             LogPrintf("MultiChainMiner: Waiting for upgrade, block is dropped\n");
@@ -1469,11 +1475,11 @@ void static BitcoinMiner(CWallet *pwallet)
                         {
                             if(!ProcessBlockFound(pblock, *pwallet, reservekey))
                             {
-                                __US_Sleep(1000);                                            
+                                __US_Sleep(1000);
                             }
                         }
-/* MCHN END */                        
-                        
+/* MCHN END */
+
                         SetThreadPriority(THREAD_PRIORITY_LOWEST);
 
                         // In regression test mode, stop mining after a block is found.
@@ -1516,13 +1522,13 @@ void static BitcoinMiner(CWallet *pwallet)
                 // Check for stop or if block needs to be rebuilt
                 boost::this_thread::interruption_point();
                 // Regtest mode doesn't require peers
-                if (vNodes.empty() && Params().MiningRequiresPeers() 
+                if (vNodes.empty() && Params().MiningRequiresPeers()
                         && not_setup_period
                         && ( (mc_gState->m_Permissions->GetMinerCount() > 1)
                         || (mc_gState->m_NetworkParams->GetInt64Param("anyonecanmine") != 0)
                         || (mc_gState->m_NetworkParams->IsProtocolMultichain() == 0)
                         )
-                        ) 
+                        )
                 {
 //                if (vNodes.empty() && Params().MiningRequiresPeers() && not_setup_period)
                     break;
@@ -1535,12 +1541,12 @@ void static BitcoinMiner(CWallet *pwallet)
                     break;
 
                 // Update nTime every few seconds
-                
+
                 if(UpdateTime(pblock, pindexPrev))
                 {
-/* MCHN START */                    
+/* MCHN START */
                     CreateBlockSignature(pblock,BLOCKSIGHASH_NO_SIGNATURE_AND_NONCE,pwallet);
-/* MCHN END */                    
+/* MCHN END */
                 }
                 if (Params().AllowMinDifficultyBlocks())
                 {
@@ -1548,7 +1554,7 @@ void static BitcoinMiner(CWallet *pwallet)
                     hashTarget.SetCompact(pblock->nBits);
                 }
             }
-/* MCHN START */    
+/* MCHN START */
             double wTimeNow=mc_TimeNowAsDouble();
 //            if(wTimeNow>wStartTime+100)
             if(wTimeNow>wStartTime+0.01)
@@ -1558,13 +1564,13 @@ void static BitcoinMiner(CWallet *pwallet)
                 wPos=(wPos+1)%wSize;
                 dHashesPerSec=wThisCount/(wTimeNow-wStartTime);
             }
-            
-            } 
+
+            }
             else
             {
-                __US_Sleep(100);                
+                __US_Sleep(100);
             }
-/* MCHN END */    
+/* MCHN END */
         }
     }
     catch (boost::thread_interrupted)
@@ -1589,10 +1595,10 @@ void GenerateBitcoins(bool fGenerate, CWallet* pwallet, int nThreads)
     if (minerThreads != NULL)
     {
         minerThreads->interrupt_all();
-/* MCHN START */        
+/* MCHN START */
         minerThreads->join_all();
-/* MCHN END */        
-        
+/* MCHN END */
+
         delete minerThreads;
         minerThreads = NULL;
     }

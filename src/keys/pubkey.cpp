@@ -223,12 +223,12 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
 
     ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
 
-    bool result = verifier.VerifyMessage( 
+    bool result = verifier.VerifyMessage(
         /*(const byte*) hash,
-        8,*/ 
-        (const byte*) &hash,//data.data(), 
-        256, 
-        (const byte*) vchSig.data(), 
+        8,*/
+        (const byte*) &hash,//data.data(),
+        256,
+        (const byte*) vchSig.data(),
         vchSig.size() );
 
     //if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
@@ -272,14 +272,14 @@ bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned cha
 bool CPubKey::IsFullyValid() const {
     if (!IsValid())
         return false;
-    ECDSA<ECP, SHA256>::PublicKey pubKey;
-    pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 80).Ref());
+    //ECDSA<ECP, SHA256>::PublicKey pubKey;
+    //pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 108).Ref());
 
     CryptoPP::RandomNumberGenerator rnd;
     if(!pubKey.Validate(rnd, 3)) {
         std::cout << "Non valid public key in IsFullyValid()\n";
         return false;
-    }    
+    }
     /*secp256k1_pubkey pubkey;
     return secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size());*/
     return true;
@@ -321,11 +321,12 @@ bool CPubKey::Derive(CPubKey& pubkeyChild, ChainCode &ccChild, unsigned int nChi
 }
 
 void CExtPubKey::Encode(unsigned char code[74]) const {
+    std::cout << "ERR: Encode\n";
     code[0] = nDepth;
     memcpy(code+1, vchFingerprint, 4);
     code[5] = (nChild >> 24) & 0xFF; code[6] = (nChild >> 16) & 0xFF;
     code[7] = (nChild >>  8) & 0xFF; code[8] = (nChild >>  0) & 0xFF;
-    memcpy(code+9, chaincode.begin(), 32);    
+    memcpy(code+9, chaincode.begin(), 32);
     assert(pubkey.size() == 33);
     memcpy(code+41, pubkey.begin(), 33);
 }
@@ -339,11 +340,12 @@ void CExtPubKey::Decode(const unsigned char code[74]) {
 }
 
 bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const {
+    std::cout << "ERR: Derive\n";
     out.nDepth = nDepth + 1;
     CKeyID id = pubkey.GetID();
     memcpy(&out.vchFingerprint[0], &id, 4);
     out.nChild = nChild;
-    return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);    
+    return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);
 }
 
 /* static */ bool CPubKey::CheckLowS(const std::vector<unsigned char>& vchSig) {

@@ -49,7 +49,7 @@ using CryptoPP::BufferedTransformation;
 
 
 
-/** 
+/**
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
  * const unsigned int PUBLIC_KEY_SIZE  = 65;
@@ -91,12 +91,18 @@ public:
         LockObject(vch);
     }
 
+     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey GetPrivCryptoPPKey() const {
+        return privKey1;
+     }
+
     //! Copy constructor. This is necessary because of memlocking.
     CKey(const CKey& secret) : fValid(secret.fValid), fCompressed(secret.fCompressed)
     {
-        std::cout << "Private key init TODO\n";
+        std::cout << "Private key init TODO Valid:" << secret.fValid << " Compressed: " << fCompressed << "\n";
         LockObject(vch);
         memcpy(vch, secret.vch, sizeof(vch));
+        //privKey1.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+        privKey1 = secret.GetPrivCryptoPPKey();
     }
 
     //! Destructor (again necessary because of memlocking).
@@ -148,7 +154,7 @@ public:
 
     /**
      * Convert the private key to a CPrivKey (serialized OpenSSL private key data).
-     * This is expensive. 
+     * This is expensive.
      */
     CPrivKey GetPrivKey() const;
 
