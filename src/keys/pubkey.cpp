@@ -215,11 +215,14 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
         return false;
     }
 
-    CryptoPP::RandomNumberGenerator rnd;
-    if(!pubKey.Validate(rnd, 3)) {
+    if(!IsFullyValid()) {
         std::cout << "Non valid public key\n";
-        return false;
+        return false;        
+    } else {
+        std::cout << "Verify: good pub key\n";
     }
+    std::cout << "Checking with: \n";
+    printVch(true);
 
     ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
 
@@ -227,7 +230,7 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
         /*(const byte*) hash,
         8,*/
         (const byte*) &hash,//data.data(),
-        256,
+        32,
         (const byte*) vchSig.data(),
         vchSig.size() );
 
@@ -269,13 +272,32 @@ bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned cha
     return true;
 }
 
+void CPubKey::printVch(bool oneGo) const {
+    printf("Print vch:\n");
+    if(!oneGo) {
+        for(int i=0; i< 108; i++) {
+            printf("i: %d: %02x\n", i, vch[i]);
+            //i << ": ";
+            //std::cout << std::hex << vch[i];
+            //std::cout << "\n";
+        }
+    } else {
+        printf("Key: ");
+        for(int i=0; i< 108; i++) {
+            printf("%02x", vch[i]);
+        }
+        printf("\n");
+    }
+    //std::cout << "\n";
+}
+
 bool CPubKey::IsFullyValid() const {
     if (!IsValid())
         return false;
     //ECDSA<ECP, SHA256>::PublicKey pubKey;
     //pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 108).Ref());
 
-    CryptoPP::RandomNumberGenerator rnd;
+    CryptoPP::AutoSeededRandomPool rnd;
     if(!pubKey.Validate(rnd, 3)) {
         std::cout << "Non valid public key in IsFullyValid()\n";
         return false;

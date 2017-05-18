@@ -1442,7 +1442,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
         {
 /* MCHN START */            
 //            return error("AcceptToMemoryPool: : ConnectInputs failed %s", hash.ToString());            
-            return state.DoS(0,error("AcceptToMemoryPool: : ConnectInputs failed %s", hash.ToString()),REJECT_INVALID,"ConnectInputs failed");
+            return state.DoS(0,error("AcceptToMemoryPool: : ConnectInputs failed 11%s", hash.ToString()),REJECT_INVALID,"ConnectInputs failed111");
 /* MCHN END */            
         }
         
@@ -1460,7 +1460,7 @@ bool AcceptToMemoryPool(CTxMemPool& pool, CValidationState &state, const CTransa
         {
 /* MCHN START */        
 //            return error("AcceptToMemoryPool: : BUG! PLEASE REPORT THIS! ConnectInputs failed against MANDATORY but not STANDARD flags %s", hash.ToString());
-            return state.DoS(0,error("AcceptToMemoryPool: : BUG! PLEASE REPORT THIS! ConnectInputs failed against MANDATORY but not STANDARD flags %s", hash.ToString()),REJECT_INVALID,"ConnectInputs failed");
+            return state.DoS(0,error("AcceptToMemoryPool: : BUG! PLEASE REPORT THIS! ConnectInputs failed against MANDATORY but not STANDARD flags %s", hash.ToString()),REJECT_INVALID,"ConnectInputs failed22");
 /* MCHN END */        
         }
                 

@@ -111,6 +111,8 @@ bool static IsValidSignatureEncoding(const std::vector<unsigned char> &sig) {
     // * S: arbitrary-length big-endian encoded S value. The same rules apply.
     // * sighash: 1-byte value indicating what data is hashed (not part of the DER
     //   signature)
+    
+    return true;
 
     // Minimum and maximum size constraints.
     if (sig.size() < 9) return false;
@@ -187,6 +189,7 @@ bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
 bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, ScriptError* serror) {
     // Empty signature. Not strictly DER encoded, but allowed to provide a
     // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
+    return true;
     if (vchSig.size() == 0) {
         return true;
     }
@@ -202,6 +205,7 @@ bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, Sc
 }
 
 bool static CheckPubKeyEncoding(const valtype &vchSig, unsigned int flags, ScriptError* serror) {
+    return true;
     if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsCompressedOrUncompressedPubKey(vchSig)) {
         return set_error(serror, SCRIPT_ERR_PUBKEYTYPE);
     }

@@ -25,6 +25,8 @@
 #include "../cryptopp/queue.h"
 #include "../cryptopp/osrng.h"
 
+#include <stdio.h>
+
 
 // ASN1 is a namespace, not an object
 #include "../cryptopp/oids.h"
@@ -101,6 +103,7 @@ public:
     void Set(const T pbegin, const T pend)
     {
         int len = pend == pbegin ? 0 : GetLen(pbegin[0]);
+        std::cout << "Setting length for pub key: " << len << "\n";
         if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
 
@@ -218,10 +221,10 @@ public:
     template <typename Stream>
     void Unserialize(Stream& s, int nType, int nVersion)
     {
-        std::cout << "Pub key: unserialize called\n";
         unsigned int len = ::ReadCompactSize(s);
         if (len <= 108) {
             s.read((char*)vch, len);
+            Set(&vch[0], &vch[108]);
         } else {
             // invalid pubkey, skip available data
             char dummy;
@@ -230,6 +233,8 @@ public:
             Invalidate();
         }
     }
+    
+    void printVch(bool oneGo) const;
 
     //! Get the KeyID of this public key (hash of its serialization)
     CKeyID GetID() const

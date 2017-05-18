@@ -102,6 +102,7 @@ public:
         LockObject(vch);
         memcpy(vch, secret.vch, sizeof(vch));
         //privKey1.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+        privKey1.AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
         privKey1 = secret.GetPrivCryptoPPKey();
     }
 
@@ -139,6 +140,9 @@ public:
     unsigned int size() const { return (fValid ? 76 : 0); }
     const unsigned char* begin() const { return vch; }
     const unsigned char* end() const { return vch + size(); }
+    
+    void printVch(bool oneGo) const;
+
 
     //! Check whether this private key is valid.
     bool IsValid() const { return fValid; }

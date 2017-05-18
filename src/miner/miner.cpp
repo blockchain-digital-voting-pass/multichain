@@ -1410,11 +1410,11 @@ void static BitcoinMiner(CWallet *pwallet)
                 LogPrintf("Error in MultiChainMiner: Keypool ran out, please call keypoolrefill before restarting the mining thread\n");
                 return;
             }
-            if(kMiner.IsFullyValid()) {
+            /*if(kMiner.IsFullyValid()) {
                 std::cout << "Miner: pub full valid\n";
             } else {
                 std::cout << "Miner: pub full invalid\n";
-            }
+            }*/
             CBlock *pblock = &pblocktemplate->block;
             IncrementExtraNonce(pblock, pindexPrev, nExtraNonce,pwallet);
 
