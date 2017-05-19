@@ -989,6 +989,9 @@ int mc_Script::GetBlockSignature(unsigned char* sig,int *sig_size,uint32_t* hash
     ptr+=MC_DCT_SCRIPT_IDENTIFIER_LEN+1;
     
     sig_len=mc_GetLE(ptr,1);
+    if(sig_len == 64) {
+        sig_len = 320;
+    }
     ptr++;
     
     if(sig_len>*sig_size)
@@ -1033,7 +1036,7 @@ int mc_Script::SetBlockSignature(const unsigned char* sig,int sig_size,uint32_t 
     int err;
     unsigned char buf[MC_DCT_SCRIPT_IDENTIFIER_LEN+1];
     
-    if((sig_size>0xff) || (key_size>0xff))
+    if((sig_size>0xffff) || (key_size>0xff))
     {
         return MC_ERR_INVALID_PARAMETER_VALUE;        
     }

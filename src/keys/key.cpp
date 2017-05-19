@@ -301,26 +301,32 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
 
     // Determine maximum size, allocate a string with the maximum size
     size_t siglen = signer.MaxSignatureLength();
-    std::string signature(siglen, 0x00);
+    std::string signature(siglen * 4, 0x00);
 
     // Sign, and trim signature to actual size
-    siglen = signer.SignMessage( prng, (const byte*) &hash, 32, (byte*)signature.data() );
-    signature.resize(siglen);
+    //siglen = signer.SignMessage( prng, (const byte*) &hash, 32, (byte*)signature.data() );
+    //signature.resize(siglen);
+    
+    
+    unsigned int i=0;
+    for(i=0; i< 4; i++ ) {
+        siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* 80 );
+        //signature.resize(siglen);
+    }
 
     //Resize signature to make sure it is big enough
-    vchSig.resize(170);
+    vchSig.resize(80 * 4);
 
     //Copy signature to vchSig
-    unsigned int i=0;
-    for(i=0; i < siglen; i++) {
+    for(i=0; i < 80*4; i++) {
         vchSig[i] = signature[i];
     }
     //memcpy(&signature[0], &vchSig[0], siglen+1);
     
     // Resize to correct signature length
     std::cout << "Signed with key: \n";
-    printVch(true);
-    vchSig.resize(siglen);
+    //printVch(true);
+    //vchSig.resize(siglen);
     return true;
 }
 

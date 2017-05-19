@@ -226,25 +226,29 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
 
     ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
 
-    bool result = verifier.VerifyMessage(
-        /*(const byte*) hash,
-        8,*/
-        (const byte*) &hash,//data.data(),
-        32,
-        (const byte*) vchSig.data(),
-        vchSig.size() );
+    bool result;
+    for(int i=0; i <4; i++) {
+        result = verifier.VerifyMessage(
+            /*(const byte*) hash,
+            8,*/
+            (const byte*) &hash + i*8,//data.data(),
+            8,
+            (const byte*) vchSig.data() + i * 80,
+            80 );
 
-    //if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
-    //    return false;
-    //}
-    /* libsecp256k1's ECDSA verification requires lower-S signatures, which have
-     * not historically been enforced in Bitcoin, so normalize them first. */
-    //secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
-    //return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
-    if(result) {
-        std::cout << "\n\nVerify succeeded\n\n";
-    } else {
-        std::cout << "\n\nHelaas pindakaas\n\n";
+        //if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
+        //    return false;
+        //}
+        /* libsecp256k1's ECDSA verification requires lower-S signatures, which have
+         * not historically been enforced in Bitcoin, so normalize them first. */
+        //secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
+        //return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+        if(result) {
+            std::cout << "Verify succeeded\n";
+        } else {
+            std::cout << "Helaas pindakaas\n";
+            return false;
+        }
     }
     return result;
 

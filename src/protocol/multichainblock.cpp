@@ -177,7 +177,7 @@ void FindSigner(CBlock *block,unsigned char *sig,int *sig_size,uint32_t *hash_ty
                         if(block->vSigner[0] == 0)
                         {
                             mc_gState->m_TmpScript1->SetElement(e);                        
-                            *sig_size=255;
+                            *sig_size=320;
                             key_size=255;    
                             if(mc_gState->m_TmpScript1->GetBlockSignature(sig,sig_size,hash_type,block->vSigner+1,&key_size) == 0)
                             {
@@ -193,7 +193,7 @@ void FindSigner(CBlock *block,unsigned char *sig,int *sig_size,uint32_t *hash_ty
     
 bool VerifyBlockSignature(CBlock *block,bool force)
 {
-    unsigned char sig[255];
+    unsigned char sig[320];
     int sig_size;//,key_size;
     uint32_t hash_type;
     uint256 hash_to_verify;
