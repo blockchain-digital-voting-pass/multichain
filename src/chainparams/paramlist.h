@@ -258,7 +258,7 @@ static const mc_OneMultichainParam MultichainParamArray[] =
 
                    
     { "genesispubkey"                     , "genesis-pubkey"                     ,
-                   MC_PRM_BINARY  | MC_PRM_CALCULATED                           , 65,         0,          0,         0, 0.0, 10001, 0, "",
+                   MC_PRM_BINARY  | MC_PRM_CALCULATED                           , 160,         0,          0,         0, 0.0, 10001, 0, "",
                    "genesisversion","",
                    "Genesis block coinbase output public key."},
     { "genesisversion"                    , "genesis-version"                    ,

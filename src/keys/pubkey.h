@@ -13,8 +13,34 @@
 
 #include <stdexcept>
 #include <vector>
+#include <iostream>
 
-/** 
+
+
+
+
+#include <stdio.h>
+
+
+#include <cryptopp/hex.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/files.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/cryptlib.h>
+
+using namespace CryptoPP::ASN1;
+
+
+#define CRYPTOPP_PUBLIC_KEY_SIZE 108
+
+
+/**
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
  * const unsigned int PUBLIC_KEY_SIZE  = 65;
@@ -33,7 +59,7 @@ public:
 };
 
 typedef uint256 ChainCode;
- 
+
 /** An encapsulated public key. */
 class CPubKey
 {
@@ -43,16 +69,18 @@ private:
      * Just store the serialized data.
      * Its length can very cheaply be computed from the first byte.
      */
-    unsigned char vch[65];
+    unsigned char vch[CRYPTOPP_PUBLIC_KEY_SIZE];
+
+    //! The CryptoPP public key
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
 
     //! Compute the length of a pubkey with a given first byte.
     unsigned int static GetLen(unsigned char chHeader)
     {
-        if (chHeader == 2 || chHeader == 3)
-            return 33;
-        if (chHeader == 4 || chHeader == 6 || chHeader == 7)
-            return 65;
-        return 0;
+        if(chHeader == 0xFF || chHeader != 0x30) {
+            return 0;
+        }
+        return CRYPTOPP_PUBLIC_KEY_SIZE;
     }
 
     //! Set this key data to be invalid
@@ -73,11 +101,31 @@ public:
     void Set(const T pbegin, const T pend)
     {
         int len = pend == pbegin ? 0 : GetLen(pbegin[0]);
-        if (len && len == (pend - pbegin))
+        if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
+            //Initialize public key from vch
+            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PUBLIC_KEY_SIZE).Ref());
+        }
         else
             Invalidate();
     }
+
+    void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
+        pubKey = _pubKey;
+        //Get the byte array
+        std::string p;
+        pubKey.Save(CryptoPP::StringSink(p).Ref());
+        
+        //Check the size
+        if(p.size() != CRYPTOPP_PUBLIC_KEY_SIZE) {
+            std::cout << "Public key size incorrect\n";
+        }
+        //Copy to vch
+        memcpy(&vch[0], p.data(), p.size());
+
+    }
+
 
     //! Construct a public key using begin/end iterators to byte data.
     template <typename T>
@@ -130,8 +178,9 @@ public:
     void Unserialize(Stream& s, int nType, int nVersion)
     {
         unsigned int len = ::ReadCompactSize(s);
-        if (len <= 65) {
+        if (len <= CRYPTOPP_PUBLIC_KEY_SIZE) {
             s.read((char*)vch, len);
+            Set(&vch[0], &vch[CRYPTOPP_PUBLIC_KEY_SIZE]);
         } else {
             // invalid pubkey, skip available data
             char dummy;
@@ -140,6 +189,8 @@ public:
             Invalidate();
         }
     }
+    
+    void printVch(bool oneGo) const;
 
     //! Get the KeyID of this public key (hash of its serialization)
     CKeyID GetID() const
@@ -155,7 +206,7 @@ public:
 
     /*
      * Check syntactic correctness.
-     * 
+     *
      * Note that this is consensus critical as CheckSig() calls it!
      */
     bool IsValid() const
@@ -182,7 +233,7 @@ public:
      * Check whether a signature is normalized (lower-S).
      */
     static bool CheckLowS(const std::vector<unsigned char>& vchSig);
-    
+
     //! Recover a public key from a compact signature.
     bool RecoverCompact(const uint256& hash, const std::vector<unsigned char>& vchSig);
 
