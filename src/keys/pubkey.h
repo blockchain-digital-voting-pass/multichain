@@ -77,7 +77,7 @@ private:
     //! Compute the length of a pubkey with a given first byte.
     unsigned int static GetLen(unsigned char chHeader)
     {
-        if(chHeader == 0xFF) {
+        if(chHeader == 0xFF || chHeader != 0x30) {
             return 0;
         }
         return CRYPTOPP_PUBLIC_KEY_SIZE;
