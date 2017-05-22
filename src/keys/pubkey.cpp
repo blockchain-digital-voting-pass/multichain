@@ -6,40 +6,7 @@
 #include "keys/pubkey.h"
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
-
-
-#include "../cryptopp/eccrypto.h"
-using CryptoPP::ECP;
-using CryptoPP::ECDSA;
-
-#include "../cryptopp/sha.h"
-using CryptoPP::SHA256;
-
-#include "../cryptopp/queue.h"
-using CryptoPP::ByteQueue;
-
-#include "../cryptopp/oids.h"
-using CryptoPP::OID;
-
-// ASN1 is a namespace, not an object
-#include "../cryptopp/asn.h"
-using namespace CryptoPP::ASN1;
-
-#include "../cryptopp/files.h"
-using CryptoPP::FileSource;
-using CryptoPP::FileSink;
-
-#include "../cryptopp/integer.h"
-using CryptoPP::Integer;
-
-#include "../cryptopp/cryptlib.h"
-using CryptoPP::PublicKey;
-using CryptoPP::BufferedTransformation;
-
 #include "keys/key.h"
-
-
-
 
 
 
@@ -214,7 +181,7 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
     }
     
     //Create verifier
-    ECDSA<ECP, SHA256>::Verifier verifier( pubKey );
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier( pubKey );
 
     bool result;
     for(int i=0; i <4; i++) {

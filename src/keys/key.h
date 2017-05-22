@@ -15,36 +15,25 @@
 #include <stdexcept>
 #include <vector>
 
+#include "crypto/common.h"
+#include "crypto/hmac_sha512.h"
 
 
-#include "../cryptopp/eccrypto.h"
-
-
-#include "../cryptopp/sha.h"
-
-#include "../cryptopp/queue.h"
-using CryptoPP::ByteQueue;
-
-#include "../cryptopp/oids.h"
-using CryptoPP::OID;
-
-// ASN1 is a namespace, not an object
-#include "../cryptopp/asn.h"
+#include <crypto/common.h>
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/files.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/base64.h>
 using namespace CryptoPP::ASN1;
 
-#include "../cryptopp/files.h"
-using CryptoPP::FileSource;
-using CryptoPP::FileSink;
-
-#include "../cryptopp/integer.h"
-using CryptoPP::Integer;
-
-#include "../cryptopp/cryptlib.h"
-using CryptoPP::PublicKey;
-using CryptoPP::BufferedTransformation;
-
-#include "../cryptopp/asn.h"
-#include "../cryptopp/osrng.h"
 
 
 #define CRYPTOPP_PRIVATE_KEY_SIZE 76

@@ -4,56 +4,15 @@
 // MultiChain code distributed under the GPLv3 license, see COPYING file.
 
 #include "keys/key.h"
-
-#include "crypto/common.h"
-#include "crypto/hmac_sha512.h"
 #include "keys/pubkey.h"
+
 #include "utils/random.h"
 
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
 
-
-
-
-#include "../cryptopp/eccrypto.h"
-
-
-#include "../cryptopp/sha.h"
-
-#include "../cryptopp/queue.h"
-using CryptoPP::ByteQueue;
-
-#include "../cryptopp/oids.h"
-using CryptoPP::OID;
-
-// ASN1 is a namespace, not an object
-#include "../cryptopp/asn.h"
-using namespace CryptoPP::ASN1;
-
-#include "../cryptopp/files.h"
-using CryptoPP::FileSource;
-using CryptoPP::FileSink;
-
-#include "../cryptopp/integer.h"
-using CryptoPP::Integer;
-
-#include "../cryptopp/cryptlib.h"
-using CryptoPP::PublicKey;
-using CryptoPP::BufferedTransformation;
-
-#include <../cryptopp/hex.h>
-#include "../cryptopp/asn.h"
-#include "../cryptopp/osrng.h"
-#include <cryptopp/filters.h>
-#include <cryptopp/base64.h>
-
 #include <stdio.h>
-
-
-
-
 
 
 static secp256k1_context* secp256k1_context_sign = NULL;
