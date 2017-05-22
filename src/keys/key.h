@@ -79,6 +79,7 @@ private:
     //! The actual byte data
     unsigned char vch[76];
 
+    //! The CryptoPP private key
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey1;
 
     //! Check whether the 32-byte array pointed to be vch is valid keydata.
@@ -98,10 +99,10 @@ public:
     //! Copy constructor. This is necessary because of memlocking.
     CKey(const CKey& secret) : fValid(secret.fValid), fCompressed(secret.fCompressed)
     {
-        std::cout << "Private key init TODO Valid:" << secret.fValid << " Compressed: " << fCompressed << "\n";
         LockObject(vch);
         memcpy(vch, secret.vch, sizeof(vch));
-        //privKey1.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+     
+        //Initialize cryptopp private key
         privKey1.AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
         privKey1 = secret.GetPrivCryptoPPKey();
     }
@@ -122,7 +123,6 @@ public:
     template <typename T>
     void Set(const T pbegin, const T pend, bool fCompressedIn)
     {
-        std::cout << "Weird Set called\n\n";
         if (pend - pbegin != 32) {
             fValid = false;
             return;
@@ -141,6 +141,7 @@ public:
     const unsigned char* begin() const { return vch; }
     const unsigned char* end() const { return vch + size(); }
     
+    //! Print the key in bytes.
     void printVch(bool oneGo) const;
 
 

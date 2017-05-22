@@ -170,20 +170,16 @@ bool CKey::Check(const unsigned char *vch) {
     //privKey.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
     privKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 160).Ref());
 
-    bool result = privKey.Validate( prng, 3 );
-    return result;
-    //return secp256k1_ec_seckey_verify(secp256k1_context_sign, vch);
+    return privKey.Validate(prng, 3);
 }
 
 void CKey::MakeNewKey(bool fCompressedIn) {
-    std::cout << "Calling MakeNewKey\n\n";
-
     //create new private key
     CryptoPP::AutoSeededRandomPool prng;
     privKey1.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
 
     //Validate the private key
-    bool result = privKey1.Validate( prng, 3 );
+    bool result = privKey1.Validate(prng, 3);
     if(!result) {
         std::cout << "Invalid private key generated\n";
         fValid = false;
@@ -202,7 +198,6 @@ void CKey::MakeNewKey(bool fCompressedIn) {
         encoded.resize(size);
     }
     encoder.Get((byte*)encoded.data(), encoded.size());
-    std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
 
     CryptoPP::HexDecoder decoder;
     std::string decoded;
@@ -215,16 +210,15 @@ void CKey::MakeNewKey(bool fCompressedIn) {
         decoded.resize(size);
         decoder.Get((byte*)decoded.data(), decoded.size());
     }
-    //write to private key
+    
+    //write to vch
     memcpy(&vch[0], decoded.data(), decoded.size());
-    //std::cout << "Decoded: " << decoded << "\nSize: " << decoded.size() << "\n";
 
     fValid = true;
     fCompressed = false;
 }
 
 bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
-    std::cout << "Set private key  FIIIIIIIX\n";
     if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), &privkey[0], privkey.size()))
         return false;
     fCompressed = fCompressedIn;
@@ -232,18 +226,9 @@ bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
     return true;
 }
 
+//TODO: serialized OpenSSL private key data
 CPrivKey CKey::GetPrivKey() const {
-    std::cout << "Get priv key called FIX\n";
-    std::cout << "DEze\n";
     assert(fValid);
-    /*CPrivKey privkey;
-    int ret;
-    size_t privkeylen;
-    privkey.resize(279);
-    privkeylen = 279;
-    ret = ec_privkey_export_der(secp256k1_context_sign, (unsigned char*)&privkey[0], &privkeylen, begin(), fCompressed ? SECP256K1_EC_COMPRESSED : SECP256K1_EC_UNCOMPRESSED);
-    assert(ret);
-    privkey.resize(privkeylen);*/
     CPrivKey privkey;
     privkey.resize(76);
     memcpy(&privkey[0], &vch[0], 76);
@@ -256,24 +241,17 @@ CPubKey CKey::GetPubKey() const {
     CPubKey result;
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
     CryptoPP::AutoSeededRandomPool prng;
+    
+    //Create public key from private key.
     privKey1.MakePublicKey(pubKey);
     if(!pubKey.Validate(prng, 3)) {
         std::cout << "Could not construct public key from private key!\n\n";
     }
     result.Set(pubKey);
-
-    /*if(result.IsFullyValid()) {
-        std::cout << "Correct pub key\n";
-    } else {
-        std::cout << "Incorrect pub key\n";
-    }*/
-
     return result;
-
 }
 
 bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
-    std::cout << "SIGNING\n\n";
     if (!fValid) {
         std::cout << "Signing with non valid key... Stopping\n";
         return false;
@@ -283,50 +261,30 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     CryptoPP::AutoSeededRandomPool prng;
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Signer signer(privKey1);
     
-    
-    //signer.AccessKey().AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
-    
     //validate if private key is correct
     bool result = signer.AccessKey().Validate( prng, 3 );
     if(!result) {
-        std::cout << "Error in validating key\n\n";
-        return false;
-    }
-    
-    result = privKey1.Validate(prng, 3);
-    if(!result) {
-        std::cout << "Error in validating key\n\n";
+        std::cout << "ERROR in validating private key\n\n";
         return false;
     }
 
-    // Determine maximum size, allocate a string with the maximum size
+    //Determine maximum size, allocate a string with 4 times the maximum size. The max size is 80 voor brainpoolP320r1
     size_t siglen = signer.MaxSignatureLength();
     std::string signature(siglen * 4, 0x00);
-
-    // Sign, and trim signature to actual size
-    //siglen = signer.SignMessage( prng, (const byte*) &hash, 32, (byte*)signature.data() );
-    //signature.resize(siglen);
     
-    
+    //Sign the hash in 4 different parts
     unsigned int i=0;
     for(i=0; i< 4; i++ ) {
         siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* 80 );
         //signature.resize(siglen);
     }
 
-    //Resize signature to make sure it is big enough
+    //Resize return value to make sure it is big enough
     vchSig.resize(80 * 4);
-
     //Copy signature to vchSig
     for(i=0; i < 80*4; i++) {
         vchSig[i] = signature[i];
     }
-    //memcpy(&signature[0], &vchSig[0], siglen+1);
-    
-    // Resize to correct signature length
-    std::cout << "Signed with key: \n";
-    //printVch(true);
-    //vchSig.resize(siglen);
     return true;
 }
 
@@ -335,9 +293,6 @@ void CKey::printVch(bool oneGo) const {
     if(!oneGo) {
         for(int i=0; i< 76; i++) {
             printf("i: %d: %02x\n", i, vch[i]);
-            //i << ": ";
-            //std::cout << std::hex << vch[i];
-            //std::cout << "\n";
         }
     } else {
         printf("Key: ");
@@ -346,7 +301,6 @@ void CKey::printVch(bool oneGo) const {
         }
         printf("\n");
     }
-    //std::cout << "\n";
 }
 
 
@@ -365,7 +319,6 @@ bool CKey::VerifyPubKey(const CPubKey& pubkey) const {
 }
 
 bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) const {
-    std::cout << "Sign Compact called FIX\n\n";
     if (!fValid)
         return false;
     vchSig.resize(65);
@@ -380,35 +333,24 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
     return true;
 }
 
+//TODO: change to openssl format
 bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
-    std::cout << "Private key load called FIX \n\n";
-    std::cout << "DEZE\n";
-    //schrijf naar vch de key van privkey
-    
-    /*if (!ec_privkey_import_der(secp256k1_context_sign, (unsigned char*)begin(), &privkey[0], privkey.size()))
-        return false;
-    fCompressed = vchPubKey.IsCompressed();
-    fValid = true;
-*/    
-    //CryptoPP::ArraySource as((const byte*)privkey.data(), privkey.size(),
-                               
-       //                         true );
+    //Copy value from privkey yo vch
     memcpy(&vch[0], &privkey[0], 76);
-    //privKey1.AccessKey().AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
+    
+    //Initialize Cryptopp private key
     privKey1.AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
     privKey1.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 76).Ref());
-    //privKey1.BERDecode(as);
     fValid = true;
-    //std::cout << "Valid pair: "  << VerifyPubKey(vchPubKey) << "\n";
     
+    //Do we need to check the private key?
     if (fSkipCheck)
         return true;
-
+    //Check the private key for correctness and return the result
     return VerifyPubKey(vchPubKey);
 }
 
 bool CKey::Derive(CKey& keyChild, ChainCode &ccChild, unsigned int nChild, const ChainCode& cc) const {
-    std::cout << "Private key derive called\n\n";
     assert(IsValid());
     assert(IsCompressed());
     unsigned char out[64];

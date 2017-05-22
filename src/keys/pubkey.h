@@ -69,16 +69,12 @@ private:
     unsigned char vch[108];
     std::string p;
 
+    //! The CryptoPP public key
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
 
     //! Compute the length of a pubkey with a given first byte.
     unsigned int static GetLen(unsigned char chHeader)
     {
-        /*if (chHeader == 2 || chHeader == 3)
-            return 33;
-        if (chHeader == 4 || chHeader == 6 || chHeader == 7)
-            return 65;
-        return 0;*/
         if(chHeader == 0xFF) {
             return 0;
         }
@@ -103,21 +99,9 @@ public:
     void Set(const T pbegin, const T pend)
     {
         int len = pend == pbegin ? 0 : GetLen(pbegin[0]);
-        std::cout << "Setting length for pub key: " << len << "\n";
         if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
-
-            /*CryptoPP::HexDecoder decoder;
-            decoder.Put((byte*)&pbegin[0], len);
-            decoder.MessageEnd();
-
-            CryptoPP::ECP::Point q;
-            size_t len = decoder.MaxRetrievable();
-
-            q.identity = false;
-            q.x.Decode(decoder, len/2);
-            q.y.Decode(decoder, len/2);*/
-
+            //Initialize public key from vch
             pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
             pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 108).Ref());
         }
@@ -127,7 +111,6 @@ public:
 
     void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
         pubKey = _pubKey;
-
 
         //Write to vch
         //TODO: rewrite so it's not ugly
@@ -142,7 +125,6 @@ public:
             encoded.resize(size);
         }
         encoder.Get((byte*)encoded.data(), encoded.size());
-        std::cout << "Size : " << encoded.size() << "\nData: " << encoded << " END\n";
 
         CryptoPP::HexDecoder decoder;
         std::string decoded;
@@ -159,12 +141,10 @@ public:
         //write to public key
         memcpy(&vch[0], decoded.data(), decoded.size());
 
+        //This is a better way to retrieve byte data
         pubKey.Save(CryptoPP::StringSink(p).Ref());
         std::string s3;
         CryptoPP::StringSource ss3(p, true, new CryptoPP::HexEncoder(new CryptoPP::StringSink(s3)));
-        std::cout << "Key 1 (not compressed): " << p.size() << " bytes" << "\n";
-        std::cout << "  " << s3 << "\n";
-
 
     }
 
@@ -207,13 +187,11 @@ public:
     //! Implement serialization, as if this was a byte vector.
     unsigned int GetSerializeSize(int nType, int nVersion) const
     {
-        std::cout << "Pub key: serialize size called\n";
         return size() + 1;
     }
     template <typename Stream>
     void Serialize(Stream& s, int nType, int nVersion) const
     {
-        std::cout << "Pub key: serialize called\n";
         unsigned int len = size();
         ::WriteCompactSize(s, len);
         s.write((char*)vch, len);
