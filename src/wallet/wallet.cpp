@@ -3423,9 +3423,6 @@ bool CWallet::GetKeyFromAddressBook(CPubKey& result,uint32_t type,const set<CTxD
        (type == 0))
     {
         result=vchDefaultKey;
-        /*if(!result.IsFullyValid()) {
-            std::cout << "Wallet non1\n";
-        }*/
         return true;
     }
     
@@ -3439,9 +3436,6 @@ bool CWallet::GetKeyFromAddressBook(CPubKey& result,uint32_t type,const set<CTxD
         if(perm == type)
         {
             result=vchDefaultKey;
-           /* if(!result.IsFullyValid()) {
-                std::cout << "Wallet non2\n";
-            }*/
             return true;        
         }
     }
@@ -3498,9 +3492,6 @@ bool CWallet::GetKeyFromAddressBook(CPubKey& result,uint32_t type,const set<CTxD
                         if(GetKey(keyID, key))
                         {
                             result=key.GetPubKey();
-                            /*if(!result.IsFullyValid()) {
-                                std::cout << "Wallet non3\n";
-                            }*/
                             return true;
                         }
                     }

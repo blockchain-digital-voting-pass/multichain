@@ -540,11 +540,7 @@ ReadKeyValue(CWallet* pwallet, CDataStream& ssKey, CDataStream& ssValue,
         }
         else if (strType == "defaultkey")
         {
-            std::vector<unsigned char> x;
-            //ssValue >> x;
             ssValue >> pwallet->vchDefaultKey;
-            std::cout << "SIZE KEY: " << x.size() << "\n";
-            //pwallet->vchDefaultKey.Set(x.begin()+1, x.end());
         }
         else if (strType == "pool")
         {

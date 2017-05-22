@@ -1036,7 +1036,7 @@ int mc_Script::SetBlockSignature(const unsigned char* sig,int sig_size,uint32_t 
     int err;
     unsigned char buf[MC_DCT_SCRIPT_IDENTIFIER_LEN+1];
     
-    if((sig_size>0xffff) || (key_size>0xff))
+    if((sig_size>0xfff) || (key_size>0xff))
     {
         return MC_ERR_INVALID_PARAMETER_VALUE;        
     }
