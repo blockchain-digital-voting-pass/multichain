@@ -277,11 +277,11 @@ bool CKey::SignCompact(const uint256 &hash, std::vector<unsigned char>& vchSig) 
 //TODO: change to openssl format
 bool CKey::Load(CPrivKey &privkey, CPubKey &vchPubKey, bool fSkipCheck=false) {
     //Copy value from privkey yo vch
-    memcpy(&vch[0], &privkey[0], 76);
+    memcpy(&vch[0], &privkey[0], CRYPTOPP_PRIVATE_KEY_SIZE);
     
     //Initialize Cryptopp private key
     privKey1.AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
-    privKey1.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 76).Ref());
+    privKey1.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PRIVATE_KEY_SIZE).Ref());
     fValid = true;
     
     //Do we need to check the private key?
