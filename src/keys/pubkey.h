@@ -178,7 +178,7 @@ public:
     void Unserialize(Stream& s, int nType, int nVersion)
     {
         unsigned int len = ::ReadCompactSize(s);
-        if (len <= 108) {
+        if (len <= CRYPTOPP_PUBLIC_KEY_SIZE) {
             s.read((char*)vch, len);
             Set(&vch[0], &vch[CRYPTOPP_PUBLIC_KEY_SIZE]);
         } else {
