@@ -67,7 +67,6 @@ private:
      * Its length can very cheaply be computed from the first byte.
      */
     unsigned char vch[108];
-    std::string p;
 
     //! The CryptoPP public key
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
@@ -111,40 +110,16 @@ public:
 
     void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
         pubKey = _pubKey;
-
-        //Write to vch
-        //TODO: rewrite so it's not ugly
-        CryptoPP::ByteQueue queue;
-        pubKey.Save(queue);
-        CryptoPP::HexEncoder encoder;
-        queue.CopyTo(encoder);
-        encoder.MessageEnd();
-        std::string encoded;
-        size_t size = encoder.MaxRetrievable();
-        if(size) {
-            encoded.resize(size);
-        }
-        encoder.Get((byte*)encoded.data(), encoded.size());
-
-        CryptoPP::HexDecoder decoder;
-        std::string decoded;
-        decoder.Put( (byte*)encoded.data(), encoded.size() );
-        decoder.MessageEnd();
-
-        size = decoder.MaxRetrievable();
-
-        if(size && size <= SIZE_MAX)
-        {
-            decoded.resize(size);
-            decoder.Get((byte*)decoded.data(), decoded.size());
-        }
-        //write to public key
-        memcpy(&vch[0], decoded.data(), decoded.size());
-
-        //This is a better way to retrieve byte data
+        //Get the byte array
+        std::string p;
         pubKey.Save(CryptoPP::StringSink(p).Ref());
-        std::string s3;
-        CryptoPP::StringSource ss3(p, true, new CryptoPP::HexEncoder(new CryptoPP::StringSink(s3)));
+        
+        //Check the size
+        if(p.size() != 108) {
+            std::cout << "Public key size incorrect\n";
+        }
+        //Copy to vch
+        memcpy(&vch[0], p.data(), p.size());
 
     }
 
