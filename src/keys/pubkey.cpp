@@ -4,7 +4,6 @@
 // MultiChain code distributed under the GPLv3 license, see COPYING file.
 
 #include "keys/pubkey.h"
-
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
 
@@ -36,6 +35,8 @@ using CryptoPP::Integer;
 #include "../cryptopp/cryptlib.h"
 using CryptoPP::PublicKey;
 using CryptoPP::BufferedTransformation;
+
+#include "keys/key.h"
 
 
 
@@ -220,8 +221,8 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
         result = verifier.VerifyMessage(
             (const byte*) &hash + i*8,
             8,
-            (const byte*) vchSig.data() + i * 80,
-            80 );
+            (const byte*) vchSig.data() + i * CRYPTOPP_SIGNATURE_SIZE,
+            CRYPTOPP_SIGNATURE_SIZE );
         if(!result) {
             std::cout << "Verified failed\n";
             return false;
@@ -253,12 +254,12 @@ bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned cha
 void CPubKey::printVch(bool oneGo) const {
     printf("Print vch:\n");
     if(!oneGo) {
-        for(int i=0; i< 108; i++) {
+        for(int i=0; i< CRYPTOPP_PUBLIC_KEY_SIZE; i++) {
             printf("i: %d: %02x\n", i, vch[i]);
         }
     } else {
         printf("Key: ");
-        for(int i=0; i< 108; i++) {
+        for(int i=0; i< CRYPTOPP_PUBLIC_KEY_SIZE; i++) {
             printf("%02x", vch[i]);
         }
         printf("\n");

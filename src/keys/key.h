@@ -47,7 +47,8 @@ using CryptoPP::BufferedTransformation;
 #include "../cryptopp/osrng.h"
 
 
-
+#define CRYPTOPP_PRIVATE_KEY_SIZE 76
+#define CRYPTOPP_SIGNATURE_SIZE 80
 
 /**
  * secp256k1:
@@ -77,7 +78,7 @@ private:
     bool fCompressed;
 
     //! The actual byte data
-    unsigned char vch[76];
+    unsigned char vch[CRYPTOPP_PRIVATE_KEY_SIZE];
 
     //! The CryptoPP private key
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey1;
@@ -137,7 +138,7 @@ public:
     }
 
     //! Simple read-only vector-like interface.
-    unsigned int size() const { return (fValid ? 76 : 0); }
+    unsigned int size() const { return (fValid ? CRYPTOPP_PRIVATE_KEY_SIZE : 0); }
     const unsigned char* begin() const { return vch; }
     const unsigned char* end() const { return vch + size(); }
     

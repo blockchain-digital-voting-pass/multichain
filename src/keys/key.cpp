@@ -190,7 +190,7 @@ void CKey::MakeNewKey(bool fCompressedIn) {
     privKey1.Save(CryptoPP::StringSink(p).Ref());
     
     //Check the size
-    if(p.size() != 76) {
+    if(p.size() != CRYPTOPP_PRIVATE_KEY_SIZE) {
         std::cout << "Private key size incorrect\n";
     }
     //Copy to vch
@@ -212,8 +212,8 @@ bool CKey::SetPrivKey(const CPrivKey &privkey, bool fCompressedIn) {
 CPrivKey CKey::GetPrivKey() const {
     assert(fValid);
     CPrivKey privkey;
-    privkey.resize(76);
-    memcpy(&privkey[0], &vch[0], 76);
+    privkey.resize(CRYPTOPP_PRIVATE_KEY_SIZE);
+    memcpy(&privkey[0], &vch[0], CRYPTOPP_PRIVATE_KEY_SIZE);
     return privkey;
 }
 
@@ -257,14 +257,14 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     //Sign the hash in 4 different parts
     unsigned int i=0;
     for(i=0; i< 4; i++ ) {
-        siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* 80 );
+        siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* CRYPTOPP_SIGNATURE_SIZE );
         //signature.resize(siglen);
     }
 
     //Resize return value to make sure it is big enough
-    vchSig.resize(80 * 4);
+    vchSig.resize(CRYPTOPP_SIGNATURE_SIZE * 4);
     //Copy signature to vchSig
-    for(i=0; i < 80*4; i++) {
+    for(i=0; i < CRYPTOPP_SIGNATURE_SIZE*4; i++) {
         vchSig[i] = signature[i];
     }
     return true;
@@ -273,12 +273,12 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
 void CKey::printVch(bool oneGo) const {
     printf("Print vch:\n");
     if(!oneGo) {
-        for(int i=0; i< 76; i++) {
+        for(int i=0; i< CRYPTOPP_PRIVATE_KEY_SIZE; i++) {
             printf("i: %d: %02x\n", i, vch[i]);
         }
     } else {
         printf("Key: ");
-        for(int i=0; i< 76; i++) {
+        for(int i=0; i< CRYPTOPP_PRIVATE_KEY_SIZE; i++) {
             printf("%02x", vch[i]);
         }
         printf("\n");

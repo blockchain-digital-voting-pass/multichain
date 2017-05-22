@@ -17,6 +17,7 @@
 
 
 
+
 #include "../cryptopp/eccrypto.h"
 #include "../cryptopp/sha.h"
 #include "../cryptopp/cryptlib.h"
@@ -34,7 +35,7 @@
 using namespace CryptoPP::ASN1;
 
 
-
+#define CRYPTOPP_PUBLIC_KEY_SIZE 108
 
 
 /**
@@ -66,7 +67,7 @@ private:
      * Just store the serialized data.
      * Its length can very cheaply be computed from the first byte.
      */
-    unsigned char vch[108];
+    unsigned char vch[CRYPTOPP_PUBLIC_KEY_SIZE];
 
     //! The CryptoPP public key
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
@@ -77,7 +78,7 @@ private:
         if(chHeader == 0xFF) {
             return 0;
         }
-        return 108;
+        return CRYPTOPP_PUBLIC_KEY_SIZE;
     }
 
     //! Set this key data to be invalid
@@ -102,7 +103,7 @@ public:
             memcpy(vch, (unsigned char*)&pbegin[0], len);
             //Initialize public key from vch
             pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
-            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 108).Ref());
+            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PUBLIC_KEY_SIZE).Ref());
         }
         else
             Invalidate();
@@ -115,7 +116,7 @@ public:
         pubKey.Save(CryptoPP::StringSink(p).Ref());
         
         //Check the size
-        if(p.size() != 108) {
+        if(p.size() != CRYPTOPP_PUBLIC_KEY_SIZE) {
             std::cout << "Public key size incorrect\n";
         }
         //Copy to vch
@@ -177,7 +178,7 @@ public:
         unsigned int len = ::ReadCompactSize(s);
         if (len <= 108) {
             s.read((char*)vch, len);
-            Set(&vch[0], &vch[108]);
+            Set(&vch[0], &vch[CRYPTOPP_PUBLIC_KEY_SIZE]);
         } else {
             // invalid pubkey, skip available data
             char dummy;
