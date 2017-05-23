@@ -192,7 +192,7 @@ CPubKey CKey::GetPubKey() const {
     return result;
 }
 
-bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case) const {
+bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_t test_case, bool fourParts) const {
     if (!fValid) {
         std::cout << "Signing with non valid key... Stopping\n";
         return false;
@@ -212,21 +212,26 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     //Determine maximum size, allocate a string with 4 times the maximum size. The max size is 80 voor brainpoolP320r1
     size_t siglen = signer.MaxSignatureLength();
     std::string signature(siglen * 4, 0x00);
-    
-    //Sign the hash in 4 different parts
+    size_t sizeSig =0;
     unsigned int i=0;
-    for(i=0; i< 4; i++ ) {
-        siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* CRYPTOPP_SIGNATURE_SIZE );
-        //signature.resize(siglen);
+    if(fourParts) {
+        //Sign the hash in 4 different parts
+        for(i=0; i< 4; i++ ) {
+            siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* CRYPTOPP_SIGNATURE_SIZE );
+            //signature.resize(siglen);
+        } 
+        sizeSig = CRYPTOPP_SIGNATURE_SIZE * 4;
+    } else {
+        sizeSig = signer.SignMessage( prng, (const byte*) &hash, 32, (byte*)signature.data() );
     }
-
     //Resize return value to make sure it is big enough
-    vchSig.resize(CRYPTOPP_SIGNATURE_SIZE * 4);
+    vchSig.resize(sizeSig);
     //Copy signature to vchSig
-    for(i=0; i < CRYPTOPP_SIGNATURE_SIZE*4; i++) {
+    for(i=0; i < sizeSig; i++) {
         vchSig[i] = signature[i];
     }
     return true;
+
 }
 
 void CKey::printVch(bool oneGo) const {

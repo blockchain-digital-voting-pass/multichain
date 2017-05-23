@@ -225,7 +225,7 @@ bool CreateBlockSignature(CBlock *block,uint32_t hash_type,CWallet *pwallet)
     }
     
     vector<unsigned char> vchSig;
-    key.Sign(hash_to_verify, vchSig);
+    key.Sign(hash_to_verify, vchSig, 0, false);
     
     mc_Script *lpScript;
     lpScript=new mc_Script;

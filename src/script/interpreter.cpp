@@ -189,8 +189,8 @@ bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
 bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, ScriptError* serror) {
     // Empty signature. Not strictly DER encoded, but allowed to provide a
     // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
-    return true;
-    if (vchSig.size() == 0) {
+    return vchSig.size() == 0 || vchSig.size() == 321;
+    /*if (vchSig.size() == 0) {
         return true;
     }
     if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !IsValidSignatureEncoding(vchSig)) {
@@ -201,7 +201,7 @@ bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, Sc
     } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
         return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
     }
-    return true;
+    return true;*/
 }
 
 bool static CheckPubKeyEncoding(const valtype &vchSig, unsigned int flags, ScriptError* serror) {

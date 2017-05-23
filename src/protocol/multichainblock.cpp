@@ -298,7 +298,7 @@ bool VerifyBlockSignature(CBlock *block,bool force)
             block->nSigHashType=BLOCKSIGHASH_INVALID;
             return false;
         }
-        if(!pubKeyOut.Verify(hash_to_verify,vchSigOut))
+        if(!pubKeyOut.Verify(hash_to_verify,vchSigOut,false))
         {
             LogPrintf("mchn: Wrong block signature\n");
             block->nSigHashType=BLOCKSIGHASH_INVALID;

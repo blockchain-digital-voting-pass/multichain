@@ -168,7 +168,7 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
 }
 
 
-bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig) const {
+bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig, bool fourParts) const {
     if (vchSig.size() == 0) {
         std::cout << "Signature has size 0\n";
         return false;
@@ -183,17 +183,25 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
     //Create verifier
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier( pubKey );
 
-    bool result;
-    for(int i=0; i <4; i++) {
-        result = verifier.VerifyMessage(
-            (const byte*) &hash + i*8,
-            8,
-            (const byte*) vchSig.data() + i * CRYPTOPP_SIGNATURE_SIZE,
-            CRYPTOPP_SIGNATURE_SIZE );
-        if(!result) {
-            std::cout << "Verified failed\n";
-            return false;
+    bool result = true;
+    if(fourParts) {
+        for(int i=0; i <4; i++) {
+            result = result && verifier.VerifyMessage(
+                (const byte*) &hash + i*8,
+                8,
+                (const byte*) vchSig.data() + i * CRYPTOPP_SIGNATURE_SIZE,
+                CRYPTOPP_SIGNATURE_SIZE );
         }
+    } else {
+        result = verifier.VerifyMessage(
+                (const byte*) &hash,
+                32,
+                (const byte*) vchSig.data(),
+                CRYPTOPP_SIGNATURE_SIZE );
+    }
+    if(!result) {
+        std::cout << "Verified failed\n";
+        return false;
     }
     return result;
 }
