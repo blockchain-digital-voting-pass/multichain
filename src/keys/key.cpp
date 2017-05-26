@@ -183,11 +183,10 @@ CPubKey CKey::GetPubKey() const {
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey pubKey;
     CryptoPP::AutoSeededRandomPool prng;
     
-    //Create public key from private key.
+    //Create public key from private key and check if the public key is correct.
     privKey1.MakePublicKey(pubKey);
-    if(!pubKey.Validate(prng, 3)) {
-        std::cout << "Could not construct public key from private key!\n\n";
-    }
+    assert(pubKey.Validate(prng, 3));
+    
     result.Set(pubKey);
     return result;
 }
