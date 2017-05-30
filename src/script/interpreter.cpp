@@ -117,7 +117,7 @@ bool static IsValidSignatureEncoding(const std::vector<unsigned char> &sig) {
     
     return sig.size() == CRYPTOPP_SIGNATURE_SIZE * 4 +1;
 
-    // Minimum and maximum size constraints.
+    /*// Minimum and maximum size constraints.
     if (sig.size() < 9) return false;
     if (sig.size() > 73) return false;
 
@@ -166,7 +166,7 @@ bool static IsValidSignatureEncoding(const std::vector<unsigned char> &sig) {
     // interpreted as a negative number.
     if (lenS > 1 && (sig[lenR + 6] == 0x00) && !(sig[lenR + 7] & 0x80)) return false;
 
-    return true;
+    return true;*/
 }
 
 bool static IsLowDERSignature(const valtype &vchSig, ScriptError* serror) {
@@ -192,17 +192,12 @@ bool static IsDefinedHashtypeSignature(const valtype &vchSig) {
 bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, ScriptError* serror) {
     // Empty signature. Not strictly DER encoded, but allowed to provide a
     // compact way to provide an invalid signature for use with CHECK(MULTI)SIG
-    //return true;
     if (vchSig.size() == 0) {
         return true;
     }
+    //there is no low DER signature right now so do not check for it
     if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !IsValidSignatureEncoding(vchSig)) {
         return set_error(serror, SCRIPT_ERR_SIG_DER);
-        
-    //there is no low DER signature right now
-    /*} else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
-        // serror is set
-        return false;*/
     } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
         return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
     }

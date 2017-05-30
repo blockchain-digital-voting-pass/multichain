@@ -126,7 +126,6 @@ bool CKey::Check(const unsigned char *vch) {
     CryptoPP::AutoSeededRandomPool prng;
     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey;
 
-    //privKey.Initialize( prng, CryptoPP::ASN1::brainpoolP320r1() );
     privKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) 160).Ref());
 
     return privKey.Validate(prng, 3);
@@ -216,7 +215,6 @@ bool CKey::Sign(const uint256 &hash, std::vector<unsigned char>& vchSig, uint32_
     unsigned int i=0;
     for(i=0; i< 4; i++ ) {
         siglen = signer.SignMessage( prng, (const byte*) &hash + i*8, 8, (byte*)signature.data() + i* CRYPTOPP_SIGNATURE_SIZE );
-        //signature.resize(siglen);
     }
 
     //Resize return value to make sure it is big enough
