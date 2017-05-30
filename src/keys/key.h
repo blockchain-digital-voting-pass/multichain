@@ -15,8 +15,31 @@
 #include <stdexcept>
 #include <vector>
 
+#include "crypto/common.h"
+#include "crypto/hmac_sha512.h"
 
-/** 
+
+#include <crypto/common.h>
+#include <cryptopp/eccrypto.h>
+#include <cryptopp/sha.h>
+#include <cryptopp/queue.h>
+#include <cryptopp/oids.h>
+#include <cryptopp/files.h>
+#include <cryptopp/integer.h>
+#include <cryptopp/cryptlib.h>
+#include <cryptopp/hex.h>
+#include <cryptopp/asn.h>
+#include <cryptopp/osrng.h>
+#include <cryptopp/filters.h>
+#include <cryptopp/base64.h>
+using namespace CryptoPP::ASN1;
+
+
+
+#define CRYPTOPP_PRIVATE_KEY_SIZE 76
+#define CRYPTOPP_SIGNATURE_SIZE 80
+
+/**
  * secp256k1:
  * const unsigned int PRIVATE_KEY_SIZE = 279;
  * const unsigned int PUBLIC_KEY_SIZE  = 65;
@@ -44,7 +67,10 @@ private:
     bool fCompressed;
 
     //! The actual byte data
-    unsigned char vch[32];
+    unsigned char vch[CRYPTOPP_PRIVATE_KEY_SIZE];
+
+    //! The CryptoPP private key
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey privKey1;
 
     //! Check whether the 32-byte array pointed to be vch is valid keydata.
     bool static Check(const unsigned char* vch);
@@ -56,11 +82,19 @@ public:
         LockObject(vch);
     }
 
+     CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PrivateKey GetPrivCryptoPPKey() const {
+        return privKey1;
+     }
+
     //! Copy constructor. This is necessary because of memlocking.
     CKey(const CKey& secret) : fValid(secret.fValid), fCompressed(secret.fCompressed)
     {
         LockObject(vch);
         memcpy(vch, secret.vch, sizeof(vch));
+     
+        //Initialize cryptopp private key
+        privKey1.AccessGroupParameters().Initialize(CryptoPP::ASN1::brainpoolP320r1());
+        privKey1 = secret.GetPrivCryptoPPKey();
     }
 
     //! Destructor (again necessary because of memlocking).
@@ -93,9 +127,13 @@ public:
     }
 
     //! Simple read-only vector-like interface.
-    unsigned int size() const { return (fValid ? 32 : 0); }
+    unsigned int size() const { return (fValid ? CRYPTOPP_PRIVATE_KEY_SIZE : 0); }
     const unsigned char* begin() const { return vch; }
     const unsigned char* end() const { return vch + size(); }
+    
+    //! Print the key in bytes.
+    void printVch(bool oneGo) const;
+
 
     //! Check whether this private key is valid.
     bool IsValid() const { return fValid; }
@@ -111,7 +149,7 @@ public:
 
     /**
      * Convert the private key to a CPrivKey (serialized OpenSSL private key data).
-     * This is expensive. 
+     * This is expensive.
      */
     CPrivKey GetPrivKey() const;
 

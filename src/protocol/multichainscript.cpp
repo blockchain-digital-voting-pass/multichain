@@ -988,8 +988,8 @@ int mc_Script::GetBlockSignature(unsigned char* sig,int *sig_size,uint32_t* hash
     
     ptr+=MC_DCT_SCRIPT_IDENTIFIER_LEN+1;
     
-    sig_len=mc_GetLE(ptr,1);
-    ptr++;
+    sig_len=mc_GetLE(ptr,2);
+    ptr+=2;
     
     if(sig_len>*sig_size)
     {
@@ -1016,7 +1016,7 @@ int mc_Script::GetBlockSignature(unsigned char* sig,int *sig_size,uint32_t* hash
         return MC_ERR_WRONG_SCRIPT;
     }
     
-    if(m_lpCoord[m_CurrentElement*2+1] != MC_DCT_SCRIPT_IDENTIFIER_LEN+1+3+sig_len+key_len)
+    if(m_lpCoord[m_CurrentElement*2+1] != MC_DCT_SCRIPT_IDENTIFIER_LEN+1+3+sig_len+key_len+1)
     {
         return MC_ERR_WRONG_SCRIPT;
     }
@@ -1033,7 +1033,7 @@ int mc_Script::SetBlockSignature(const unsigned char* sig,int sig_size,uint32_t 
     int err;
     unsigned char buf[MC_DCT_SCRIPT_IDENTIFIER_LEN+1];
     
-    if((sig_size>0xff) || (key_size>0xff))
+    if((sig_size> 320) || (key_size>0xff))
     {
         return MC_ERR_INVALID_PARAMETER_VALUE;        
     }
@@ -1053,8 +1053,8 @@ int mc_Script::SetBlockSignature(const unsigned char* sig,int sig_size,uint32_t 
         return err;
     }
     
-    mc_PutLE(buf,&sig_size,1);
-    err=SetData(buf,1);
+    mc_PutLE(buf,&sig_size,2);
+    err=SetData(buf,2);
     if(err)
     {
         return err;

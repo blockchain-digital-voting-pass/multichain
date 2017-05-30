@@ -4,9 +4,11 @@
 // MultiChain code distributed under the GPLv3 license, see COPYING file.
 
 #include "keys/pubkey.h"
-
 #include <secp256k1.h>
 #include <secp256k1_recovery.h>
+#include "keys/key.h"
+
+
 
 namespace
 {
@@ -167,23 +169,33 @@ static int ecdsa_signature_parse_der_lax(const secp256k1_context* ctx, secp256k1
 
 
 bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchSig) const {
-    if (!IsValid())
-        return false;
-    secp256k1_pubkey pubkey;
-    secp256k1_ecdsa_signature sig;
-    if (!secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size())) {
-        return false;
-    }
     if (vchSig.size() == 0) {
+        std::cout << "Signature has size 0\n";
         return false;
     }
-    if (!ecdsa_signature_parse_der_lax(secp256k1_context_verify, &sig, &vchSig[0], vchSig.size())) {
-        return false;
+    
+    //Check if the public key is valid
+    if(!IsFullyValid()) {
+        std::cout << "Non valid public key\n";
+        return false;        
     }
-    /* libsecp256k1's ECDSA verification requires lower-S signatures, which have
-     * not historically been enforced in Bitcoin, so normalize them first. */
-    secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
-    return secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
+    
+    //Create verifier
+    CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::Verifier verifier( pubKey );
+
+    bool result;
+    for(int i=0; i <4; i++) {
+        result = verifier.VerifyMessage(
+            (const byte*) &hash + i*8,
+            8,
+            (const byte*) vchSig.data() + i * CRYPTOPP_SIGNATURE_SIZE,
+            CRYPTOPP_SIGNATURE_SIZE );
+        if(!result) {
+            std::cout << "Verified failed\n";
+            return false;
+        }
+    }
+    return result;
 }
 
 bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned char>& vchSig) {
@@ -206,11 +218,31 @@ bool CPubKey::RecoverCompact(const uint256 &hash, const std::vector<unsigned cha
     return true;
 }
 
+void CPubKey::printVch(bool oneGo) const {
+    printf("Print vch:\n");
+    if(!oneGo) {
+        for(int i=0; i< CRYPTOPP_PUBLIC_KEY_SIZE; i++) {
+            printf("i: %d: %02x\n", i, vch[i]);
+        }
+    } else {
+        printf("Key: ");
+        for(int i=0; i< CRYPTOPP_PUBLIC_KEY_SIZE; i++) {
+            printf("%02x", vch[i]);
+        }
+        printf("\n");
+    }
+}
+
 bool CPubKey::IsFullyValid() const {
     if (!IsValid())
         return false;
-    secp256k1_pubkey pubkey;
-    return secp256k1_ec_pubkey_parse(secp256k1_context_verify, &pubkey, &(*this)[0], size());
+        
+    //Validate the key
+    CryptoPP::AutoSeededRandomPool rnd;
+    if(!pubKey.Validate(rnd, 3)) {
+        std::cout << "Non valid public key in IsFullyValid()\n";
+        return false;
+    }
     return true;
 }
 
@@ -254,7 +286,7 @@ void CExtPubKey::Encode(unsigned char code[74]) const {
     memcpy(code+1, vchFingerprint, 4);
     code[5] = (nChild >> 24) & 0xFF; code[6] = (nChild >> 16) & 0xFF;
     code[7] = (nChild >>  8) & 0xFF; code[8] = (nChild >>  0) & 0xFF;
-    memcpy(code+9, chaincode.begin(), 32);    
+    memcpy(code+9, chaincode.begin(), 32);
     assert(pubkey.size() == 33);
     memcpy(code+41, pubkey.begin(), 33);
 }
@@ -272,7 +304,7 @@ bool CExtPubKey::Derive(CExtPubKey &out, unsigned int nChild) const {
     CKeyID id = pubkey.GetID();
     memcpy(&out.vchFingerprint[0], &id, 4);
     out.nChild = nChild;
-    return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);    
+    return pubkey.Derive(out.pubkey, out.chaincode, nChild, chaincode);
 }
 
 /* static */ bool CPubKey::CheckLowS(const std::vector<unsigned char>& vchSig) {

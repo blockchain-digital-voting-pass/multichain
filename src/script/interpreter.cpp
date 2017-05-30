@@ -14,6 +14,7 @@
 #include "crypto/sha1.h"
 #include "crypto/sha256.h"
 #include "keys/pubkey.h"
+#include "keys/key.h"
 #include "script/script.h"
 #include "structs/uint256.h"
 
@@ -68,7 +69,9 @@ static inline void popstack(vector<valtype>& stack)
 }
 
 bool static IsCompressedOrUncompressedPubKey(const valtype &vchPubKey) {
-    if (vchPubKey.size() < 33) {
+    return vchPubKey.size() == CRYPTOPP_PUBLIC_KEY_SIZE;
+    
+    /*if (vchPubKey.size() < 33) {
         //  Non-canonical public key: too short
         return false;
     }
@@ -86,7 +89,7 @@ bool static IsCompressedOrUncompressedPubKey(const valtype &vchPubKey) {
           //  Non-canonical public key: neither compressed nor uncompressed
           return false;
     }
-    return true;
+    return true;*/
 }
 
 /**
@@ -111,8 +114,10 @@ bool static IsValidSignatureEncoding(const std::vector<unsigned char> &sig) {
     // * S: arbitrary-length big-endian encoded S value. The same rules apply.
     // * sighash: 1-byte value indicating what data is hashed (not part of the DER
     //   signature)
+    
+    return sig.size() == CRYPTOPP_SIGNATURE_SIZE * 4 +1;
 
-    // Minimum and maximum size constraints.
+    /*// Minimum and maximum size constraints.
     if (sig.size() < 9) return false;
     if (sig.size() > 73) return false;
 
@@ -161,7 +166,7 @@ bool static IsValidSignatureEncoding(const std::vector<unsigned char> &sig) {
     // interpreted as a negative number.
     if (lenS > 1 && (sig[lenR + 6] == 0x00) && !(sig[lenR + 7] & 0x80)) return false;
 
-    return true;
+    return true;*/
 }
 
 bool static IsLowDERSignature(const valtype &vchSig, ScriptError* serror) {
@@ -190,11 +195,9 @@ bool static CheckSignatureEncoding(const valtype &vchSig, unsigned int flags, Sc
     if (vchSig.size() == 0) {
         return true;
     }
+    //there is no low DER signature right now so do not check for it
     if ((flags & (SCRIPT_VERIFY_DERSIG | SCRIPT_VERIFY_LOW_S | SCRIPT_VERIFY_STRICTENC)) != 0 && !IsValidSignatureEncoding(vchSig)) {
         return set_error(serror, SCRIPT_ERR_SIG_DER);
-    } else if ((flags & SCRIPT_VERIFY_LOW_S) != 0 && !IsLowDERSignature(vchSig, serror)) {
-        // serror is set
-        return false;
     } else if ((flags & SCRIPT_VERIFY_STRICTENC) != 0 && !IsDefinedHashtypeSignature(vchSig)) {
         return set_error(serror, SCRIPT_ERR_SIG_HASHTYPE);
     }
