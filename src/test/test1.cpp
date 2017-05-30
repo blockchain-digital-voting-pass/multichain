@@ -190,7 +190,7 @@ SCENARIO( "Invalid CPubKey", "[public key loading]" ) {
 		
 		REQUIRE( pub.IsValid() == false );
 		REQUIRE( pub.IsFullyValid() == false );
-		WHEN ( " verifying data " ) {
+		WHEN ( " this CPubkey has a invalid header " ) {
 	
 			THEN ( " the verify function will return false" ) {
 			    REQUIRE( pub.Verify(hash, vchSig) == false);
