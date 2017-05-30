@@ -239,7 +239,9 @@ bool CPubKey::IsFullyValid() const {
         
     //Validate the key
     CryptoPP::AutoSeededRandomPool rnd;
-    if(!pubKey.Validate(rnd, 3)) {
+    try {
+        pubKey.Validate(rnd, 3);
+    } catch (CryptoPP::Exception& ex) {
         std::cout << "Non valid public key in IsFullyValid()\n";
         return false;
     }
