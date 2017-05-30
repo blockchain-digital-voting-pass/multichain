@@ -48,6 +48,15 @@
 #include "core/main.h"
 #include "net/net.h"
 
+
+#if defined(UNIT_TESTING_MULTICHAIN)
+#include "structs/amount.h"
+#include "chainparams/state.h"
+#include "chainparams/globals.h"
+#endif // defined
+
+
+
 #define MC_DCT_SEED_NODE_MAX_SIZE 32
 
 //#include <boost/algorithm/string/case_conv.hpp> // for to_lower()
