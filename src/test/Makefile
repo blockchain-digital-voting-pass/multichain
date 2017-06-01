@@ -6,7 +6,8 @@ HEADERS =  test1.o catch.hpp ../structs/amount.h ../keys/key.h ../keys/pubkey.h 
  ../utils/util.h ../utils/utiltime.h ../chainparams/chainparamsbase.h \
  ../chainparams/params.h  \
  ../version/version.h ../multichain/multichain.h \
- ../primitives/block.h ../chainparams/globals.h
+ ../primitives/block.h ../chainparams/globals.h ../utils/streams.h \
+ ../version/clientversion.h
 
 SOURCES =../keys/pubkey.cpp \
  ../keys/key.cpp ../crypto/sha256.cpp ../structs/hash.cpp ../crypto/ripemd160.cpp \

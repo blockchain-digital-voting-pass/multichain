@@ -3,6 +3,8 @@
 #include "keys/key.h"
 #include <iostream>
 #include "keys/pubkey.h"
+#include "utils/streams.h"
+#include "version/clientversion.h"
 
 
 
@@ -177,13 +179,14 @@ SCENARIO( "Invalid CKey", "[public key loading]" ) {
 SCENARIO( "Invalid CPubKey", "[public key loading]" ) {
 
 	GIVEN ( "An invalid CPubKey" ) {	
+		//create an invalid public key
 		CPubKey pub;
-				
 		std::vector<unsigned char> invalidKey;
 		invalidKey.resize(CRYPTOPP_PUBLIC_KEY_SIZE);
 		invalidKey[0] = 'a';
-			
 		pub.Set(invalidKey.begin(), invalidKey.end());
+
+		//create hash and signature
 		uint256 hash = 124657450183;
 		std::vector<unsigned char> vchSig;
 		vchSig.resize(CRYPTOPP_SIGNATURE_SIZE * 4);
@@ -203,20 +206,31 @@ SCENARIO( "Invalid CPubKey", "[public key loading]" ) {
 			
 			THEN ( " the key is invalidated" ) {
 				REQUIRE( pub.IsValid() == false);
-				
-				
-				
 			}
-			
-			
 		}
-
-		
 	}
 }
 
-/*
-		CDataStream ssValue(SER_DISK, CLIENT_VERSION);
-		ssValue.reserve(10000);
-		ssValue << value;
-*/
+SCENARIO( "(Un)serialize public key", "[public key loading]" ) {
+	GIVEN ( "A valid CPubKey" ) {
+		//create new public key
+		CKey key;
+		key.MakeNewKey(false);		
+		CPubKey pubKey = key.GetPubKey();
+
+		WHEN ( " this key is serialized and then unserialized in a new key" ) {
+			CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+			ssValue.reserve(10000);
+			//serialize
+			pubKey.Serialize(ssValue, SER_DISK, CLIENT_VERSION);
+			//create new key and unserialize
+			CPubKey pubKey2;
+			pubKey2.Unserialize(ssValue, SER_DISK, CLIENT_VERSION);
+			THEN ( " these keys are the same" ) {
+				//check if they are the same
+				REQUIRE(pubKey == pubKey2);
+			}
+
+		}
+	}
+}
