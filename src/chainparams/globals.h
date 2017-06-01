@@ -4,6 +4,12 @@
 #ifndef GLOBALS_H
 #define	GLOBALS_H
 
+
+#if defined(UNIT_TESTING_MULTICHAIN)
+#include "structs/amount.h"
+#include "chainparams/state.h"
+#endif // defined
+
 mc_State* mc_gState;
 unsigned int MIN_RELAY_TX_FEE = 1000;                                           // new
 unsigned int MAX_OP_RETURN_RELAY = 40;                                          // standard.h

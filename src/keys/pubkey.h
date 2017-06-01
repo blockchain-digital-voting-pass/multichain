@@ -104,8 +104,12 @@ public:
         if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
             //Initialize public key from vch
-            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
-            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PUBLIC_KEY_SIZE).Ref());
+            try {
+                pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
+                pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PUBLIC_KEY_SIZE).Ref());
+            } catch(CryptoPP::Exception& ex) {
+                Invalidate();
+            }
         }
         else
             Invalidate();
