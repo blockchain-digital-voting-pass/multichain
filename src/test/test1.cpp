@@ -107,9 +107,9 @@ SCENARIO( "CPrivKey", "[public key loading]" ) {
 			
 			
 			THEN ( "public key is correct..." ) {
-                CKey keyLoad;
-                REQUIRE ( keyLoad.Load(privKey, pubKey, false) );
-                REQUIRE ( keyLoad.Load(privKey, pubKey, true) );
+				CKey keyLoad;
+				REQUIRE ( keyLoad.Load(privKey, pubKey, false) );
+				REQUIRE ( keyLoad.Load(privKey, pubKey, true) );
 			}
 		}
 	}
@@ -131,16 +131,16 @@ SCENARIO( "Wrong signature", "[signature]" ) {
 			REQUIRE ( vchSig.size() == 320);
 			
 			//get public key
-            CPubKey pub = key.GetPubKey();
-            REQUIRE ( pub.IsFullyValid() );
-    
+			CPubKey pub = key.GetPubKey();
+			REQUIRE ( pub.IsFullyValid() );
+	
 			THEN ( "the signature is considered incorrect" ) {
-                //Invalidate signature
-                vchSig[20] = vchSig[20] ^ 1;			    
+				//Invalidate signature
+				vchSig[20] = vchSig[20] ^ 1;			    
 				REQUIRE ( pub.Verify(hash, vchSig) == false);
-                //switch byte back
-                vchSig[20] = vchSig[20] ^ 1;
-                REQUIRE ( pub.Verify(hash, vchSig) );
+				//switch byte back
+				vchSig[20] = vchSig[20] ^ 1;
+				REQUIRE ( pub.Verify(hash, vchSig) );
 
 			}
 			THEN ( "the signature is considered incorrect" ) {
@@ -164,11 +164,11 @@ SCENARIO( "Invalid CKey", "[public key loading]" ) {
 		
 		key.Set(invalidKey.begin(), invalidKey.end(), false);
 		WHEN ( " signing data " ) {
-            uint256 hash = 124657450183;
+			uint256 hash = 124657450183;
 			std::vector<unsigned char> vchSig;
 	
 			THEN ( " the sign function will return false" ) {
-			    REQUIRE( key.Sign(hash, vchSig) == false);
+				REQUIRE( key.Sign(hash, vchSig) == false);
 			}
 		}
 	}
@@ -177,38 +177,46 @@ SCENARIO( "Invalid CKey", "[public key loading]" ) {
 SCENARIO( "Invalid CPubKey", "[public key loading]" ) {
 
 	GIVEN ( "An invalid CPubKey" ) {	
-	    CPubKey pub;
-	    		
+		CPubKey pub;
+				
 		std::vector<unsigned char> invalidKey;
 		invalidKey.resize(CRYPTOPP_PUBLIC_KEY_SIZE);
 		invalidKey[0] = 'a';
-            
+			
 		pub.Set(invalidKey.begin(), invalidKey.end());
-        uint256 hash = 124657450183;
-        std::vector<unsigned char> vchSig;
-        vchSig.resize(CRYPTOPP_SIGNATURE_SIZE * 4);
+		uint256 hash = 124657450183;
+		std::vector<unsigned char> vchSig;
+		vchSig.resize(CRYPTOPP_SIGNATURE_SIZE * 4);
 		
 		REQUIRE( pub.IsValid() == false );
 		REQUIRE( pub.IsFullyValid() == false );
 		WHEN ( " this CPubkey has a invalid header " ) {
 	
 			THEN ( " the verify function will return false" ) {
-			    REQUIRE( pub.Verify(hash, vchSig) == false);
+				REQUIRE( pub.Verify(hash, vchSig) == false);
 			}
 		}
 		
-        WHEN ( " this CPubKey has a correct header " ) {
-            invalidKey[0] = 0x30; 
-            pub.Set(invalidKey.begin(), invalidKey.end());
-            
+		WHEN ( " this CPubKey has a correct header " ) {
+			invalidKey[0] = 0x30; 
+			pub.Set(invalidKey.begin(), invalidKey.end());
+			
 			THEN ( " the key is invalidated" ) {
-                REQUIRE( pub.IsValid() == false);
+				REQUIRE( pub.IsValid() == false);
+				
+				
+				
 			}
-            
-            
-        }
+			
+			
+		}
 
 		
 	}
 }
 
+/*
+		CDataStream ssValue(SER_DISK, CLIENT_VERSION);
+		ssValue.reserve(10000);
+		ssValue << value;
+*/
