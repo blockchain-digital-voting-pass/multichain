@@ -37,7 +37,8 @@
 using namespace CryptoPP::ASN1;
 
 
-#define CRYPTOPP_PUBLIC_KEY_SIZE 108
+#define CRYPTOPP_PUBLIC_KEY_SIZE 81
+#define PUBLIC_KEY_POINT_SIZE (CRYPTOPP_PUBLIC_KEY_SIZE-1)/2
 
 
 /**
@@ -77,10 +78,11 @@ private:
     //! Compute the length of a pubkey with a given first byte.
     unsigned int static GetLen(unsigned char chHeader)
     {
-        if(chHeader == 0xFF || chHeader != 0x30) {
-            return 0;
+        
+        if(chHeader == 0x04 ) {
+            return CRYPTOPP_PUBLIC_KEY_SIZE;
         }
-        return CRYPTOPP_PUBLIC_KEY_SIZE;
+        return 0;
     }
 
     //! Set this key data to be invalid
@@ -104,8 +106,12 @@ public:
         if (len && len == (pend - pbegin)) {
             memcpy(vch, (unsigned char*)&pbegin[0], len);
             //Initialize public key from vch
-            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), CryptoPP::ECP::Element());
-            pubKey.Load(CryptoPP::StringStore((const byte*) vch,(size_t) CRYPTOPP_PUBLIC_KEY_SIZE).Ref());
+            CryptoPP::ECP::Point q;
+            q.identity = false;
+            q.x.Decode( &pbegin[1], PUBLIC_KEY_POINT_SIZE);
+            q.y.Decode( &pbegin[1 + PUBLIC_KEY_POINT_SIZE], PUBLIC_KEY_POINT_SIZE);
+        
+            pubKey.Initialize(CryptoPP::ASN1::brainpoolP320r1(), q);
         }
         else
             Invalidate();
@@ -114,16 +120,20 @@ public:
     void Set(CryptoPP::ECDSA<CryptoPP::ECP, CryptoPP::SHA256>::PublicKey _pubKey) {
         pubKey = _pubKey;
         //Get the byte array
-        std::string p;
-        pubKey.Save(CryptoPP::StringSink(p).Ref());
+        const CryptoPP::ECP::Point& q = pubKey.GetPublicElement();
+        vch[0] = 0x04;
         
-        //Check the size
-        if(p.size() != CRYPTOPP_PUBLIC_KEY_SIZE) {
-            std::cout << "Public key size incorrect\n";
-        }
-        //Copy to vch
-        memcpy(&vch[0], p.data(), p.size());
-
+        byte* x = (byte*) malloc(sizeof(byte) * PUBLIC_KEY_POINT_SIZE);
+        byte* y = (byte*) malloc(sizeof(byte) * PUBLIC_KEY_POINT_SIZE);
+        q.x.Encode(x, PUBLIC_KEY_POINT_SIZE);
+        q.y.Encode(y, PUBLIC_KEY_POINT_SIZE);
+        
+        memcpy(&vch[1], x, PUBLIC_KEY_POINT_SIZE);
+        memcpy(&vch[1 + PUBLIC_KEY_POINT_SIZE], y, PUBLIC_KEY_POINT_SIZE);
+        
+        free(x);
+        free(y);
+        
     }
 
 
