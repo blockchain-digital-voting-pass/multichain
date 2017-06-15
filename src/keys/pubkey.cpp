@@ -191,7 +191,7 @@ bool CPubKey::Verify(const uint256 &hash, const std::vector<unsigned char>& vchS
     secp256k1_ecdsa_signature_normalize(secp256k1_context_verify, &sig, &sig);
     bool x =secp256k1_ecdsa_verify(secp256k1_context_verify, &sig, hash.begin(), &pubkey);
     
-    
+    gettimeofday(&tp, NULL);   
     long long ms2 = tp.tv_sec * 1000 + tp.tv_usec / 1000;
     std::cout << ms2 - ms << "\n" ;
     return x;
